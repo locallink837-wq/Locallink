@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "224454444749",
+    "project_id": "localink-dev-cc4f1",
+    "storage_bucket": "localink-dev-cc4f1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:224454444749:android:4135867175e80e147ccb84",
+        "android_client_info": {
+          "package_name": "com.example.localink"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "224454444749-f9mas5hs8bo77sgqfogntvhnvopdcphq.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCjrnyyXR2XIet_zPywgsJWUqLb6u-B5wg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "224454444749-f9mas5hs8bo77sgqfogntvhnvopdcphq.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "224454444749-n7cosjiqepnpi2qjg92th5lksljdlbft.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.localink"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

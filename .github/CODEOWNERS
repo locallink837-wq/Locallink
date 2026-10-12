@@ -1,0 +1,14 @@
+# Replace @A @B @C with the real GitHub usernames.
+/lib/core/                       @A
+/lib/app/                        @A
+/lib/dev/                        @A
+/lib/main.dart                   @A
+/firestore.rules                 @A
+/firebase/firestore.rules        @A
+/lib/features/auth/              @A
+/lib/features/browse/            @A
+/lib/features/assistant/         @A
+/lib/features/safety_profile/    @A
+/lib/features/requests/          @B
+/lib/features/provider/          @C
+/lib/features/vendor/            @C

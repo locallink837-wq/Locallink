@@ -1,0 +1,267 @@
+rules_version = '2';
+
+// LocaLink Firestore rules - written from "LocaLink Backend Architecture" (section 3).
+// Default is DENY: any collection not listed below is unreachable from the app.
+// Money (wallets, wallet_txns, payments), lead assignment and AI results are written
+// ONLY by Cloud Functions (Admin SDK bypasses these rules).
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------- helpers ----------
+    function signedIn() {
+      return request.auth != null;
+    }
+    // real account = any non-anonymous user (guests are anonymous)
+    function isReal() {
+      return signedIn() && request.auth.token.firebase.sign_in_provider != 'anonymous';
+    }
+    function uid() {
+      return request.auth.uid;
+    }
+    function isAdmin() {
+      return isReal() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+    function myRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+    function reqData(rid) {
+      return get(/databases/$(database)/documents/requests/$(rid)).data;
+    }
+    function isParticipant(rid) {
+      return isReal() && (reqData(rid).customerId == uid() || reqData(rid).providerId == uid());
+    }
+    // owner of a document: field userId (or providerId)
+    function ownsDoc() {
+      return isReal() && resource.data.get('userId', resource.data.get('providerId', '')) == uid();
+    }
+    function changedKeys() {
+      return request.resource.data.diff(resource.data).affectedKeys();
+    }
+
+    // ---------- admins / config ----------
+    match /admins/{adminId} {
+      allow read: if isReal() && adminId == uid();
+      allow write: if false; // created by hand in the console
+    }
+
+    match /config/{docId} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
+    // ---------- users ----------
+    match /users/{userId} {
+      allow read: if isReal() && (userId == uid() || isAdmin());
+      allow create: if isReal() && userId == uid()
+        && request.resource.data.role in ['customer', 'provider', 'shopOwner', 'placeOwner'];
+      // role never changes after creation
+      allow update: if isReal() && userId == uid()
+        && request.resource.data.role == resource.data.role;
+      allow delete: if false;
+
+      match /devices/{token} {
+        allow read, write: if isReal() && userId == uid();
+      }
+      match /emergency_contacts/{contactId} {
+        allow read, write: if isReal() && userId == uid();
+      }
+      match /notifications/{notifId} {
+        allow read: if isReal() && userId == uid();
+        // user may only mark as read; creation is done by Cloud Functions
+        allow update: if isReal() && userId == uid() && changedKeys().hasOnly(['read']);
+        allow create, delete: if false;
+      }
+    }
+
+    // ---------- listings (service provider, place, shop) ----------
+    match /listings/{listingId} {
+      // guests: only ACTIVE places and shops. Real users: also ACTIVE services.
+      // Queries MUST include where status == 'active' (and kind in [place, shop] for guests).
+      allow read: if signedIn() && (
+        isAdmin()
+        || (isReal() && resource.data.ownerId == uid())
+        || (resource.data.status == 'active'
+            && (resource.data.kind in ['place', 'shop'] || isReal()))
+      );
+
+      // owner creates a PENDING listing; a provider listing id = provider uid
+      allow create: if isReal()
+        && request.resource.data.ownerId == uid()
+        && request.resource.data.status == 'pending'
+        && request.resource.data.verified == false
+        && request.resource.data.ratingSum == 0
+        && request.resource.data.reviewCount == 0
+        && (
+          (request.resource.data.kind == 'service' && myRole() == 'provider' && listingId == uid())
+          || (request.resource.data.kind == 'shop' && myRole() == 'shopOwner')
+          || (request.resource.data.kind == 'place' && myRole() == 'placeOwner')
+        );
+
+      // owner edits own fields but never status / verified / ratings / owner / kind
+      allow update: if isAdmin()
+        || (isReal() && resource.data.ownerId == uid()
+            && !changedKeys().hasAny(['status', 'verified', 'ratingSum', 'reviewCount', 'ownerId', 'kind', 'createdAt']));
+      allow delete: if isAdmin();
+
+      // one review per user
+      match /reviews/{reviewerId} {
+        allow read: if signedIn();
+        allow create: if isReal() && reviewerId == uid()
+          && request.resource.data.rating is int
+          && request.resource.data.rating >= 1
+          && request.resource.data.rating <= 5
+          && (!('comment' in request.resource.data)
+              || (request.resource.data.comment is string && request.resource.data.comment.size() <= 500));
+        allow update, delete: if false;
+      }
+    }
+
+    // views / calls / directions counters (written by trackListingEvent function)
+    match /listing_stats/{listingId} {
+      allow read: if isReal() && (
+        isAdmin()
+        || get(/databases/$(database)/documents/listings/$(listingId)).data.ownerId == uid()
+      );
+      allow write: if false;
+    }
+
+    // ---------- reports and claims ----------
+    match /reports/{reportId} {
+      allow create: if signedIn();
+      allow read: if isAdmin();
+      allow update, delete: if false;
+    }
+
+    match /claims/{claimId} {
+      allow read: if isAdmin() || (isReal() && resource.data.claimantId == uid());
+      allow create: if isReal() && request.resource.data.claimantId == uid()
+        && request.resource.data.status == 'pending';
+      allow update: if isAdmin();
+      allow delete: if false;
+    }
+
+    // ---------- service requests ----------
+    match /requests/{requestId} {
+      allow read: if isReal() && (
+        resource.data.customerId == uid()
+        || resource.data.providerId == uid()
+        || isAdmin()
+      );
+
+      allow create: if isReal() && myRole() == 'customer'
+        && request.resource.data.customerId == uid()
+        && request.resource.data.status == 'searching'
+        && request.resource.data.providerId == null;
+
+      allow update: if isReal() && (
+        // customer cancels
+        (resource.data.customerId == uid()
+          && request.resource.data.status == 'cancelled'
+          && resource.data.status in ['searching', 'accepted', 'on_the_way']
+          && changedKeys().hasOnly(['status', 'cancelReason']))
+        ||
+        // accepted provider moves the job forward (assignment itself is done by acceptLead)
+        (resource.data.providerId == uid()
+          && request.resource.data.status in ['on_the_way', 'in_progress', 'done']
+          && changedKeys().hasOnly(['status', 'startedAt', 'completedAt', 'price']))
+      );
+      allow delete: if false;
+
+      // exact name, phone and address: customer + accepted provider only
+      match /private/{docId} {
+        allow read: if isParticipant(requestId);
+        // getAfter so it works when created in the same batch as the request
+        allow create: if isReal()
+          && getAfter(/databases/$(database)/documents/requests/$(requestId)).data.customerId == uid();
+        allow update: if isReal() && reqData(requestId).customerId == uid();
+        allow delete: if false;
+      }
+
+      match /messages/{messageId} {
+        allow read: if isParticipant(requestId);
+        allow create: if isParticipant(requestId)
+          && reqData(requestId).status in ['accepted', 'on_the_way', 'in_progress']
+          && request.resource.data.senderId == uid();
+        allow update, delete: if false;
+      }
+
+      // provider GPS for live tracking
+      match /live/{docId} {
+        allow read: if isParticipant(requestId);
+        allow write: if isReal()
+          && reqData(requestId).providerId == uid()
+          && reqData(requestId).status in ['accepted', 'on_the_way', 'in_progress'];
+      }
+    }
+
+    // ---------- leads (created by Cloud Functions) ----------
+    match /leads/{leadId} {
+      allow read: if isReal() && resource.data.providerId == uid();
+      // provider may only mark viewed / declined
+      allow update: if isReal() && resource.data.providerId == uid()
+        && resource.data.status in ['new', 'viewed']
+        && request.resource.data.status in ['viewed', 'declined']
+        && changedKeys().hasOnly(['status']);
+      allow create, delete: if false;
+    }
+
+    // ---------- providers (PRIVATE) ----------
+    match /providers/{providerId} {
+      allow read: if isReal() && (providerId == uid() || isAdmin());
+
+      allow create: if isReal() && providerId == uid() && myRole() == 'provider'
+        && request.resource.data.verificationStatus in ['draft', 'pending'];
+
+      // provider can submit (draft/rejected -> pending) but never approve themselves
+      allow update: if isAdmin()
+        || (isReal() && providerId == uid()
+            && !changedKeys().hasAny(['approvedAt', 'rejectionReason'])
+            && (
+              request.resource.data.verificationStatus == resource.data.verificationStatus
+              || (resource.data.verificationStatus in ['draft', 'rejected']
+                  && request.resource.data.verificationStatus in ['draft', 'pending'])
+            ));
+      allow delete: if false;
+    }
+
+    // ---------- money: Cloud Functions ONLY ----------
+    match /wallets/{walletId} {
+      allow read: if isReal() && walletId == uid();
+      allow write: if false;
+    }
+    match /wallet_txns/{txnId} {
+      allow read: if ownsDoc();
+      allow write: if false;
+    }
+    match /payments/{paymentId} {
+      allow read: if ownsDoc();
+      allow write: if false;
+    }
+
+    // ---------- AI ----------
+    match /ai_sessions/{sessionId} {
+      allow read: if ownsDoc();
+      allow write: if false; // Cloud Function only
+    }
+    match /plans/{planId} {
+      allow read: if ownsDoc();
+      // user may only tick tasks; the function creates the plan
+      allow update: if ownsDoc() && changedKeys().hasOnly(['tasks', 'updatedAt']);
+      allow create, delete: if false;
+    }
+
+    // ---------- feedback and SOS ----------
+    match /feedback/{feedbackId} {
+      allow create: if signedIn();
+      allow read: if isAdmin();
+      allow update, delete: if false;
+    }
+
+    match /sos_events/{eventId} {
+      allow create: if signedIn() && request.resource.data.userId == uid();
+      allow read: if isAdmin() || (signedIn() && resource.data.userId == uid());
+      allow update, delete: if false;
+    }
+  }
+}
