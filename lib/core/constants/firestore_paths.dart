@@ -1,37 +1,61 @@
-/// Collection names from the Backend Architecture PDF (section 3).
-/// Never type a collection name by hand anywhere else.
+/// Collection and document paths for Cloud Firestore and Supabase Storage.
+/// Strictly based on the Backend Architecture Document.
+/// Never hardcode raw strings in feature files; always use [FsPaths] and [Buckets].
 class FsPaths {
-  static const admins = 'admins';
-  static const config = 'config';
-  static const users = 'users';
-  static const devices = 'devices';
-  static const emergencyContacts = 'emergency_contacts';
-  static const notifications = 'notifications';
-  static const listings = 'listings';
-  static const reviews = 'reviews';
-  static const listingStats = 'listing_stats';
-  static const reports = 'reports';
-  static const claims = 'claims';
-  static const requests = 'requests';
-  static const privateContact = 'private'; // doc id: contact
-  static const messages = 'messages';
-  static const live = 'live'; // doc id: provider
-  static const leads = 'leads';
-  static const providers = 'providers';
-  static const wallets = 'wallets';
-  static const walletTxns = 'wallet_txns';
-  static const payments = 'payments';
-  static const aiSessions = 'ai_sessions';
-  static const plans = 'plans';
-  static const feedback = 'feedback';
-  static const sosEvents = 'sos_events';
+  // Top-level collections
+  static const String admins = 'admins';
+  static const String config = 'config';
+  static const String users = 'users';
+  static const String devices = 'devices';
+  static const String emergencyContacts = 'emergency_contacts';
+  static const String notifications = 'notifications';
+  static const String listings = 'listings';
+  static const String reviews = 'reviews';
+  static const String listingStats = 'listing_stats';
+  static const String reports = 'reports';
+  static const String claims = 'claims';
+  static const String requests = 'requests';
+  static const String privateContact = 'private'; // doc: contact
+  static const String messages = 'messages';
+  static const String live = 'live'; // doc: provider
+  static const String leads = 'leads';
+  static const String providers = 'providers';
+  static const String wallets = 'wallets';
+  static const String walletTxns = 'wallet_txns';
+  static const String payments = 'payments';
+  static const String aiSessions = 'ai_sessions';
+  static const String plans = 'plans';
+  static const String feedback = 'feedback';
+  static const String sosEvents = 'sos_events';
+
+  // Subcollection and Document Path Helpers
+  static String userDoc(String uid) => '$users/$uid';
+  static String userDevices(String uid) => '$users/$uid/$devices';
+
+  static String listingDoc(String listingId) => '$listings/$listingId';
+  static String listingReviews(String listingId) => '$listings/$listingId/$reviews';
+
+  static String requestDoc(String requestId) => '$requests/$requestId';
+  static String requestPrivateContact(String requestId) => '$requests/$requestId/$privateContact/contact';
+  static String requestMessages(String requestId) => '$requests/$requestId/$messages';
+  static String requestLiveProvider(String requestId) => '$requests/$requestId/$live/provider';
+
+  static String leadDoc(String leadId) => '$leads/$leadId';
+  static String providerDoc(String providerUid) => '$providers/$providerUid';
+
+  static String walletDoc(String uid) => '$wallets/$uid';
+  static String walletTxnsSub(String uid) => '$wallets/$uid/$walletTxns';
+
+  static String aiSessionDoc(String sessionId) => '$aiSessions/$sessionId';
+  static String planDoc(String planId) => '$plans/$planId';
+  static String sosEventDoc(String eventId) => '$sosEvents/$eventId';
 }
 
-/// Supabase buckets (PDF section 7).
+/// Supabase Storage Buckets
 class Buckets {
-  static const listingPhotos = 'listing-photos';
-  static const avatars = 'avatars';
-  static const requestPhotos = 'request-photos';
-  static const providerDocs = 'provider-docs';
-  static const aiPhotos = 'ai-photos';
+  static const String listingPhotos = 'listing-photos';
+  static const String avatars = 'avatars';
+  static const String requestPhotos = 'request-photos';
+  static const String providerDocs = 'provider-docs';
+  static const String aiPhotos = 'ai-photos';
 }

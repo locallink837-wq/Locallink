@@ -14,6 +14,8 @@ class LocaLinkApp extends StatelessWidget {
       title: 'LocaLink',
       debugShowCheckedModeBanner: false,
       theme: buildAppTheme(),
+      darkTheme: buildDarkTheme(),
+      themeMode: ThemeMode.light, // Uses curated light palette by default
       routes: {
         ...allRoutes,
         DevMenuView.route: (_) => const DevMenuView(),
