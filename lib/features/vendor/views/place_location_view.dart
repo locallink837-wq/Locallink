@@ -54,16 +54,24 @@ class _PlaceLocationViewState extends State<PlaceLocationView> {
       _hasLocation = true;
 
       try {
-        final placemarks = await Geocoding().placemarkFromCoordinates(_latitude, _longitude);
+        final placemarks = await placemarkFromCoordinates(
+          _latitude,
+          _longitude,
+        );
         if (placemarks.isNotEmpty) {
           final p = placemarks.first;
-          final area = [p.subLocality, p.locality, p.postalCode]
-              .where((e) => e != null && e.toString().isNotEmpty)
-              .join(', ');
-          _addressController.text = area.isNotEmpty ? area : '${p.name}, ${p.administrativeArea}';
+          final area = [
+            p.subLocality,
+            p.locality,
+            p.postalCode,
+          ].where((e) => e != null && e.toString().isNotEmpty).join(', ');
+          _addressController.text = area.isNotEmpty
+              ? area
+              : '${p.name}, ${p.administrativeArea}';
         }
       } catch (_) {
-        _addressController.text = 'Pinned (${_latitude.toStringAsFixed(4)}, ${_longitude.toStringAsFixed(4)})';
+        _addressController.text =
+            'Pinned (${_latitude.toStringAsFixed(4)}, ${_longitude.toStringAsFixed(4)})';
       }
 
       if (!mounted) return;
@@ -80,7 +88,10 @@ class _PlaceLocationViewState extends State<PlaceLocationView> {
   Future<void> _onSubmit() async {
     final address = _addressController.text.trim();
     if (address.isEmpty) {
-      setState(() => _errorMessage = 'Please provide the physical address of this place.');
+      setState(
+        () => _errorMessage =
+            'Please provide the physical address of this place.',
+      );
       return;
     }
 
@@ -96,8 +107,12 @@ class _PlaceLocationViewState extends State<PlaceLocationView> {
     });
 
     try {
-      final args = (ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?) ?? {};
-      final listingId = args['listingId'] as String? ?? _repo.generateListingId();
+      final args =
+          (ModalRoute.of(context)?.settings.arguments
+              as Map<String, dynamic>?) ??
+          {};
+      final listingId =
+          args['listingId'] as String? ?? _repo.generateListingId();
 
       await _repo.submitPlaceRegistration(
         listingId: listingId,
@@ -158,14 +173,18 @@ class _PlaceLocationViewState extends State<PlaceLocationView> {
               ],
 
               UiMapPlaceholder(
-                label: _hasLocation ? 'Place pinned' : 'Tap to pin place on map',
+                label: _hasLocation
+                    ? 'Place pinned'
+                    : 'Tap to pin place on map',
                 height: 150,
                 onTap: _fetchCurrentLocation,
               ),
               const SizedBox(height: 14),
 
               UiMainButton(
-                label: _hasLocation ? 'Update current GPS location' : 'Allow location',
+                label: _hasLocation
+                    ? 'Update current GPS location'
+                    : 'Allow location',
                 icon: Icons.my_location_rounded,
                 customAccent: UiColors.amber,
                 isLoading: _isLocating,

@@ -50,7 +50,8 @@ class _ServiceAreaViewState extends State<ServiceAreaView> {
       final provData = await _repo.streamProvider(uid).first;
       if (provData != null) {
         _radiusKm = (provData['radiusKm'] as num?)?.toDouble() ?? 5.0;
-        _addressController.text = provData['address']?.toString() ?? 'Kothrud, Pune';
+        _addressController.text =
+            provData['address']?.toString() ?? 'Kothrud, Pune';
 
         final loc = provData['serviceLocation'];
         if (loc != null) {
@@ -85,13 +86,19 @@ class _ServiceAreaViewState extends State<ServiceAreaView> {
       _longitude = position.longitude;
 
       try {
-        final placemarks = await Geocoding().placemarkFromCoordinates(_latitude, _longitude);
+        final placemarks = await placemarkFromCoordinates(
+          _latitude,
+          _longitude,
+        );
         if (placemarks.isNotEmpty) {
           final p = placemarks.first;
-          final area = [p.subLocality, p.locality]
-              .where((e) => e != null && e.toString().isNotEmpty)
-              .join(', ');
-          _addressController.text = area.isNotEmpty ? area : '${p.name}, ${p.administrativeArea}';
+          final area = [
+            p.subLocality,
+            p.locality,
+          ].where((e) => e != null && e.toString().isNotEmpty).join(', ');
+          _addressController.text = area.isNotEmpty
+              ? area
+              : '${p.name}, ${p.administrativeArea}';
         }
       } catch (_) {}
 
@@ -106,7 +113,9 @@ class _ServiceAreaViewState extends State<ServiceAreaView> {
 
     final address = _addressController.text.trim();
     if (address.isEmpty) {
-      setState(() => _errorMessage = 'Please specify your base service area / address');
+      setState(
+        () => _errorMessage = 'Please specify your base service area / address',
+      );
       return;
     }
 
@@ -167,14 +176,19 @@ class _ServiceAreaViewState extends State<ServiceAreaView> {
 
                     // Map pin area
                     UiMapPlaceholder(
-                      label: '${_radiusKm.toStringAsFixed(0)} km coverage radius',
+                      label:
+                          '${_radiusKm.toStringAsFixed(0)} km coverage radius',
                       height: 160,
                       onTap: _fetchCurrentGps,
                     ),
                     const SizedBox(height: 16),
 
                     // Quick radius preset chips
-                    uiText('Operating radius', size: 13.5, weight: FontWeight.w700),
+                    uiText(
+                      'Operating radius',
+                      size: 13.5,
+                      weight: FontWeight.w700,
+                    ),
                     const SizedBox(height: 8),
                     Row(
                       children: [
@@ -193,7 +207,11 @@ class _ServiceAreaViewState extends State<ServiceAreaView> {
                     const SizedBox(height: 16),
 
                     // Manual area address field (embedded as per spec)
-                    uiText('Base work address', size: 13.5, weight: FontWeight.w700),
+                    uiText(
+                      'Base work address',
+                      size: 13.5,
+                      weight: FontWeight.w700,
+                    ),
                     const SizedBox(height: 6),
                     UiTextInput(
                       label: '',

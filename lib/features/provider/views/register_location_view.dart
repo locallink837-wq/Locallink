@@ -86,16 +86,24 @@ class _RegisterLocationViewState extends State<RegisterLocationView> {
 
       // Reverse geocode to get street name and area
       try {
-        final placemarks = await Geocoding().placemarkFromCoordinates(_latitude, _longitude);
+        final placemarks = await placemarkFromCoordinates(
+          _latitude,
+          _longitude,
+        );
         if (placemarks.isNotEmpty) {
           final p = placemarks.first;
-          final area = [p.subLocality, p.locality, p.postalCode]
-              .where((e) => e != null && e.toString().isNotEmpty)
-              .join(', ');
-          _addressController.text = area.isNotEmpty ? area : '${p.name}, ${p.administrativeArea}';
+          final area = [
+            p.subLocality,
+            p.locality,
+            p.postalCode,
+          ].where((e) => e != null && e.toString().isNotEmpty).join(', ');
+          _addressController.text = area.isNotEmpty
+              ? area
+              : '${p.name}, ${p.administrativeArea}';
         }
       } catch (_) {
-        _addressController.text = 'Location pinned (${_latitude.toStringAsFixed(4)}, ${_longitude.toStringAsFixed(4)})';
+        _addressController.text =
+            'Location pinned (${_latitude.toStringAsFixed(4)}, ${_longitude.toStringAsFixed(4)})';
       }
 
       if (!mounted) return;
@@ -114,13 +122,17 @@ class _RegisterLocationViewState extends State<RegisterLocationView> {
   void _onNext() {
     final address = _addressController.text.trim();
     if (address.isEmpty) {
-      setState(() => _errorMessage = 'Please provide an address or pin your location');
+      setState(
+        () => _errorMessage = 'Please provide an address or pin your location',
+      );
       return;
     }
 
     setState(() => _errorMessage = null);
 
-    final prevArgs = (ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?) ?? {};
+    final prevArgs =
+        (ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?) ??
+        {};
     final combinedData = Map<String, dynamic>.from(prevArgs)
       ..addAll({
         'latitude': _latitude,
@@ -128,7 +140,11 @@ class _RegisterLocationViewState extends State<RegisterLocationView> {
         'address': address,
       });
 
-    Navigator.pushNamed(context, RegisterDocumentsView.route, arguments: combinedData);
+    Navigator.pushNamed(
+      context,
+      RegisterDocumentsView.route,
+      arguments: combinedData,
+    );
   }
 
   @override
@@ -137,10 +153,7 @@ class _RegisterLocationViewState extends State<RegisterLocationView> {
       data: uiFeatureTheme(context, UiColors.indigo),
       child: UiScaffold(
         title: 'Register (3 of 4)',
-        bottomButton: UiMainButton(
-          label: 'Next',
-          onPressed: _onNext,
-        ),
+        bottomButton: UiMainButton(label: 'Next', onPressed: _onNext),
         body: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -160,7 +173,9 @@ class _RegisterLocationViewState extends State<RegisterLocationView> {
 
               // Map illustration placeholder with pinned status
               UiMapPlaceholder(
-                label: _hasLocation ? 'Pinned area' : 'Tap allow to pin location',
+                label: _hasLocation
+                    ? 'Pinned area'
+                    : 'Tap allow to pin location',
                 height: 150,
                 onTap: _fetchCurrentLocation,
               ),
@@ -168,7 +183,9 @@ class _RegisterLocationViewState extends State<RegisterLocationView> {
 
               // Button to allow and fetch location
               UiMainButton(
-                label: _hasLocation ? 'Update current location' : 'Allow location',
+                label: _hasLocation
+                    ? 'Update current location'
+                    : 'Allow location',
                 icon: Icons.my_location_rounded,
                 isLoading: _isLocating,
                 onPressed: _fetchCurrentLocation,
@@ -176,7 +193,12 @@ class _RegisterLocationViewState extends State<RegisterLocationView> {
               const SizedBox(height: 14),
 
               // Manual address fallback section (requirement from HTML 6.3 & note)
-              uiText('Or enter address manually', size: 13.5, weight: FontWeight.w600, color: UiColors.muted),
+              uiText(
+                'Or enter address manually',
+                size: 13.5,
+                weight: FontWeight.w600,
+                color: UiColors.muted,
+              ),
               const SizedBox(height: 8),
 
               UiTextInput(
