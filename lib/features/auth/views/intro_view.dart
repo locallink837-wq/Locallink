@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/widgets/ui_kit.dart';
+import '../data/auth_repository.dart';
+import '../state/auth_flow.dart';
+import 'language_view.dart';
+
 /// Intro
 /// Module 1 - Auth and onboarding  |  Owner: A
-/// Replace the body below with your real UI. Keep the class name and route.
 class IntroView extends StatelessWidget {
   const IntroView({super.key});
 
@@ -10,9 +14,23 @@ class IntroView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Intro')),
-      body: const Center(child: Text('TODO: Intro')),
+    return Theme(
+      data: uiFeatureTheme(context, UiColors.teal),
+      child: UiCoverScreen(
+        icon: Icons.travel_explore_rounded,
+        title: 'Services, Places and Shops near you',
+        subtitle: 'Find trusted plumbers, hospitals, hardware shops and more around you.',
+        primaryButtonText: 'Get started',
+        onPrimaryPressed: () {
+          AuthFlow.beginOnboarding();
+          Navigator.pushNamed(context, LanguageView.route);
+        },
+        secondaryButtonText: 'Skip, explore as guest',
+        onSecondaryPressed: () => AuthFlow.goGuestHome(
+          Navigator.of(context),
+          const AuthRepository(),
+        ),
+      ),
     );
   }
 }

@@ -54,7 +54,8 @@ class _ShopLocationViewState extends State<ShopLocationView> {
           if (!mounted) return;
           setState(() {
             _isLocating = false;
-            _errorMessage = 'Location permission denied. Enter address manually below.';
+            _errorMessage =
+                'Location permission denied. Enter address manually below.';
           });
           return;
         }
@@ -72,16 +73,24 @@ class _ShopLocationViewState extends State<ShopLocationView> {
       _hasLocation = true;
 
       try {
-        final placemarks = await Geocoding().placemarkFromCoordinates(_latitude, _longitude);
+        final placemarks = await placemarkFromCoordinates(
+          _latitude,
+          _longitude,
+        );
         if (placemarks.isNotEmpty) {
           final p = placemarks.first;
-          final area = [p.subLocality, p.locality, p.postalCode]
-              .where((e) => e != null && e.toString().isNotEmpty)
-              .join(', ');
-          _addressController.text = area.isNotEmpty ? area : '${p.name}, ${p.administrativeArea}';
+          final area = [
+            p.subLocality,
+            p.locality,
+            p.postalCode,
+          ].where((e) => e != null && e.toString().isNotEmpty).join(', ');
+          _addressController.text = area.isNotEmpty
+              ? area
+              : '${p.name}, ${p.administrativeArea}';
         }
       } catch (_) {
-        _addressController.text = 'Shop pinned (${_latitude.toStringAsFixed(4)}, ${_longitude.toStringAsFixed(4)})';
+        _addressController.text =
+            'Shop pinned (${_latitude.toStringAsFixed(4)}, ${_longitude.toStringAsFixed(4)})';
       }
 
       if (!mounted) return;
@@ -98,11 +107,16 @@ class _ShopLocationViewState extends State<ShopLocationView> {
   void _onNext() {
     final address = _addressController.text.trim();
     if (address.isEmpty) {
-      setState(() => _errorMessage = 'Please provide an address or pin your shop location');
+      setState(
+        () => _errorMessage =
+            'Please provide an address or pin your shop location',
+      );
       return;
     }
 
-    final prevArgs = (ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?) ?? {};
+    final prevArgs =
+        (ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?) ??
+        {};
     final combinedData = Map<String, dynamic>.from(prevArgs)
       ..addAll({
         'latitude': _latitude,
@@ -110,7 +124,11 @@ class _ShopLocationViewState extends State<ShopLocationView> {
         'address': address,
       });
 
-    Navigator.pushNamed(context, ShopHoursPhotoView.route, arguments: combinedData);
+    Navigator.pushNamed(
+      context,
+      ShopHoursPhotoView.route,
+      arguments: combinedData,
+    );
   }
 
   @override
@@ -149,7 +167,9 @@ class _ShopLocationViewState extends State<ShopLocationView> {
               const SizedBox(height: 14),
 
               UiMainButton(
-                label: _hasLocation ? 'Update current location' : 'Allow location',
+                label: _hasLocation
+                    ? 'Update current location'
+                    : 'Allow location',
                 icon: Icons.my_location_rounded,
                 customAccent: UiColors.amber,
                 isLoading: _isLocating,
@@ -157,7 +177,12 @@ class _ShopLocationViewState extends State<ShopLocationView> {
               ),
               const SizedBox(height: 16),
 
-              uiText('Or enter address manually', size: 13.5, weight: FontWeight.w600, color: UiColors.muted),
+              uiText(
+                'Or enter address manually',
+                size: 13.5,
+                weight: FontWeight.w600,
+                color: UiColors.muted,
+              ),
               const SizedBox(height: 8),
 
               UiTextInput(
