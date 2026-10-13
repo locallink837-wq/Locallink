@@ -1,5 +1,6 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart' hide Path;
 
 import '../../../app/theme/app_theme.dart';
 import '../../../core/core.dart';
@@ -9,7 +10,7 @@ import 'place_detail_view.dart';
 import 'provider_detail_view.dart';
 import 'shop_detail_view.dart';
 
-/// Interactive Radar & Map Explorer
+/// Real Interactive Google-Maps-Style Map Explorer
 /// Module 2 - Browse (home, lists, detail, map)  |  Owner: A
 class MapView extends StatefulWidget {
   const MapView({super.key});
@@ -23,14 +24,28 @@ class MapView extends StatefulWidget {
 class _MapViewState extends State<MapView> {
   final _repository = BrowseRepository();
   final _locationService = const LocationService();
+  final MapController _mapController = MapController();
 
   String _filterKind = 'all'; // all | service | place | shop
   List<Listing> _allListings = [];
   Listing? _selectedListing;
   bool _isLoading = true;
+  int _mapStyleIndex = 0; // 0 = CartoDB Voyager (Google style), 1 = OSM Standard
 
   final double _userLat = Env.defaultLatitude;
   final double _userLng = Env.defaultLongitude;
+
+  // Real world high quality street map tile layers
+  static const List<Map<String, String>> _tileProviders = [
+    {
+      'name': 'Google Style',
+      'url': 'https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
+    },
+    {
+      'name': 'OpenStreetMap',
+      'url': 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    },
+  ];
 
   @override
   void initState() {
@@ -69,11 +84,41 @@ class _MapViewState extends State<MapView> {
     }
   }
 
+  void _zoomIn() {
+    final currentZoom = _mapController.camera.zoom;
+    if (currentZoom < 18) {
+      _mapController.move(_mapController.camera.center, currentZoom + 1);
+    }
+  }
+
+  void _zoomOut() {
+    final currentZoom = _mapController.camera.zoom;
+    if (currentZoom > 4) {
+      _mapController.move(_mapController.camera.center, currentZoom - 1);
+    }
+  }
+
+  void _recenterOnUser() {
+    _mapController.move(LatLng(_userLat, _userLng), 15.0);
+  }
+
+  void _toggleMapStyle() {
+    setState(() {
+      _mapStyleIndex = (_mapStyleIndex + 1) % _tileProviders.length;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Switched map style to ${_tileProviders[_mapStyleIndex]['name']}'),
+        duration: const Duration(seconds: 1),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Map & Radar'),
+        title: const Text('Map Explorer'),
         actions: [
           IconButton(
             tooltip: 'View as List',
@@ -82,7 +127,10 @@ class _MapViewState extends State<MapView> {
               Navigator.pushNamed(
                 context,
                 ListingListView.route,
-                arguments: {'title': 'Nearby Map Listings', 'kind': _filterKind == 'all' ? null : _filterKind},
+                arguments: {
+                  'title': 'Nearby Map Listings',
+                  'kind': _filterKind == 'all' ? null : _filterKind,
+                },
               );
             },
           ),
@@ -92,32 +140,97 @@ class _MapViewState extends State<MapView> {
           ? const Center(child: CircularProgressIndicator(color: AppColors.teal))
           : Stack(
               children: [
-                // Radar Map Canvas
-                Positioned.fill(
-                  child: _RadarMapCanvas(
-                    userLat: _userLat,
-                    userLng: _userLng,
-                    listings: _filteredListings,
-                    selectedListing: _selectedListing,
-                    onListingSelected: (listing) {
-                      setState(() => _selectedListing = listing);
+                // Interactive Real Map
+                FlutterMap(
+                  mapController: _mapController,
+                  options: MapOptions(
+                    initialCenter: LatLng(_userLat, _userLng),
+                    initialZoom: 14.5,
+                    minZoom: 4,
+                    maxZoom: 19,
+                    interactionOptions: const InteractionOptions(
+                      flags: InteractiveFlag.all,
+                    ),
+                    onTap: (_, _) {
+                      setState(() => _selectedListing = null);
                     },
                   ),
+                  children: [
+                    // Street Map Tiles
+                    TileLayer(
+                      urlTemplate: _tileProviders[_mapStyleIndex]['url']!,
+                      userAgentPackageName: 'com.localink.app',
+                      maxZoom: 19,
+                    ),
+
+                    // User Location Accuracy Radius
+                    CircleLayer(
+                      circles: [
+                        CircleMarker(
+                          point: LatLng(_userLat, _userLng),
+                          radius: 180,
+                          useRadiusInMeter: true,
+                          color: AppColors.myLocation.withValues(alpha: 0.12),
+                          borderColor: AppColors.myLocation.withValues(alpha: 0.35),
+                          borderStrokeWidth: 1.5,
+                        ),
+                      ],
+                    ),
+
+                    // Google Maps Style Markers
+                    MarkerLayer(
+                      markers: [
+                        // Listings Pins
+                        ..._filteredListings.map((listing) {
+                          if (listing.latitude == null || listing.longitude == null) {
+                            return null;
+                          }
+                          final isSelected = _selectedListing?.id == listing.id;
+
+                          return Marker(
+                            point: LatLng(listing.latitude!, listing.longitude!),
+                            width: isSelected ? 48 : 38,
+                            height: isSelected ? 56 : 46,
+                            alignment: Alignment.topCenter,
+                            child: GestureDetector(
+                              onTap: () {
+                                setState(() => _selectedListing = listing);
+                                _mapController.move(
+                                  LatLng(listing.latitude!, listing.longitude!),
+                                  15.5,
+                                );
+                              },
+                              child: _buildGoogleStyleMarker(listing, isSelected),
+                            ),
+                          );
+                        }).whereType<Marker>(),
+
+                        // Current User Location Marker
+                        Marker(
+                          point: LatLng(_userLat, _userLng),
+                          width: 30,
+                          height: 30,
+                          child: _buildUserLocationMarker(),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
 
-                // Top Filter Chips Bar
+                // Top Category Filter Chips Bar
                 Positioned(
                   top: 12,
-                  left: 16,
-                  right: 16,
+                  left: 14,
+                  right: 14,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.95),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: AppColors.lineLight),
                       boxShadow: const [
                         BoxShadow(
-                          color: Color(0x1A000000),
+                          color: Color(0x18000000),
                           blurRadius: 8,
                           offset: Offset(0, 2),
                         ),
@@ -127,7 +240,11 @@ class _MapViewState extends State<MapView> {
                       scrollDirection: Axis.horizontal,
                       child: Row(
                         children: [
-                          _buildFilterTab('all', 'All (${_allListings.length})', AppColors.inkLight),
+                          _buildFilterTab(
+                            'all',
+                            'All (${_allListings.length})',
+                            AppColors.inkLight,
+                          ),
                           const SizedBox(width: 6),
                           _buildFilterTab(
                             'service',
@@ -152,19 +269,63 @@ class _MapViewState extends State<MapView> {
                   ),
                 ),
 
-                // Floating Bottom Selected Card
+                // Right Google Maps Style Floating Action Controls
+                Positioned(
+                  right: 14,
+                  bottom: _selectedListing != null ? 180 : 30,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Map Layer Style Switcher
+                      _buildFloatingBtn(
+                        icon: Icons.layers_outlined,
+                        tooltip: 'Switch Map Style',
+                        onTap: _toggleMapStyle,
+                      ),
+                      const SizedBox(height: 10),
+
+                      // Re-center on My Location GPS Button
+                      _buildFloatingBtn(
+                        icon: Icons.my_location_rounded,
+                        tooltip: 'Recenter on My Location',
+                        iconColor: AppColors.myLocation,
+                        onTap: _recenterOnUser,
+                      ),
+                      const SizedBox(height: 10),
+
+                      // Zoom In (+)
+                      _buildFloatingBtn(
+                        icon: Icons.add_rounded,
+                        tooltip: 'Zoom In',
+                        onTap: _zoomIn,
+                      ),
+                      const SizedBox(height: 4),
+
+                      // Zoom Out (-)
+                      _buildFloatingBtn(
+                        icon: Icons.remove_rounded,
+                        tooltip: 'Zoom Out',
+                        onTap: _zoomOut,
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Bottom Floating Selected Listing Card
                 if (_selectedListing != null)
                   Positioned(
-                    left: 16,
-                    right: 16,
-                    bottom: 24,
+                    left: 14,
+                    right: 14,
+                    bottom: 20,
                     child: AnimatedSwitcher(
                       duration: const Duration(milliseconds: 250),
                       child: Container(
                         key: ValueKey(_selectedListing!.id),
+                        padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: AppColors.lineLight),
                           boxShadow: const [
                             BoxShadow(
                               color: Color(0x22000000),
@@ -173,10 +334,141 @@ class _MapViewState extends State<MapView> {
                             ),
                           ],
                         ),
-                        child: ListingCard(
-                          listing: _selectedListing!,
-                          distanceLabel: _getDistance(_selectedListing!),
-                          onTap: () => _openDetail(_selectedListing!),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Header with Close Button
+                            Row(
+                              children: [
+                                Container(
+                                  width: 36,
+                                  height: 36,
+                                  decoration: BoxDecoration(
+                                    color: _getKindColor(_selectedListing!).withValues(alpha: 0.12),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Icon(
+                                    _getCategoryIcon(_selectedListing!.category),
+                                    size: 18,
+                                    color: _getKindColor(_selectedListing!),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Flexible(
+                                            child: Text(
+                                              _selectedListing!.name,
+                                              style: const TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w800,
+                                                color: AppColors.inkLight,
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                          if (_selectedListing!.verified) ...[
+                                            const SizedBox(width: 4),
+                                            const Icon(Icons.verified, size: 14, color: AppColors.teal),
+                                          ],
+                                        ],
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Row(
+                                        children: [
+                                          Text(
+                                            _selectedListing!.category,
+                                            style: const TextStyle(
+                                              fontSize: 11.5,
+                                              fontWeight: FontWeight.w600,
+                                              color: AppColors.muteLight,
+                                            ),
+                                          ),
+                                          const Text(' • ', style: TextStyle(color: AppColors.lineLight)),
+                                          Text(
+                                            _getDistance(_selectedListing!),
+                                            style: const TextStyle(
+                                              fontSize: 11.5,
+                                              fontWeight: FontWeight.w700,
+                                              color: AppColors.teal,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                OpenNowBadge(
+                                  open24x7: _selectedListing!.open24x7,
+                                  openNow: _selectedListing!.isOpenNow,
+                                ),
+                                const SizedBox(width: 4),
+                                IconButton(
+                                  icon: const Icon(Icons.close, size: 18, color: AppColors.muteLight),
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(),
+                                  onPressed: () => setState(() => _selectedListing = null),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+
+                            // Address row
+                            Row(
+                              children: [
+                                const Icon(Icons.place_outlined, size: 14, color: AppColors.secondaryMuteLight),
+                                const SizedBox(width: 4),
+                                Expanded(
+                                  child: Text(
+                                    _selectedListing!.address,
+                                    style: const TextStyle(
+                                      fontSize: 11.5,
+                                      color: AppColors.secondaryMuteLight,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+
+                            // Action buttons
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: AppButton(
+                                    label: 'View Details',
+                                    color: _getKindColor(_selectedListing!),
+                                    onPressed: () => _openDetail(_selectedListing!),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: AppOutlineButton(
+                                    label: 'Directions',
+                                    color: _getKindColor(_selectedListing!),
+                                    icon: const Icon(Icons.directions, size: 16),
+                                    onPressed: () {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            'Directions to ${_selectedListing!.name} (${_getDistance(_selectedListing!)})',
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
                       ),
                     ),
@@ -217,6 +509,118 @@ class _MapViewState extends State<MapView> {
     );
   }
 
+  Widget _buildFloatingBtn({
+    required IconData icon,
+    required String tooltip,
+    required VoidCallback onTap,
+    Color? iconColor,
+  }) {
+    return Material(
+      color: Colors.white,
+      shape: const CircleBorder(),
+      elevation: 4,
+      shadowColor: const Color(0x33000000),
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: onTap,
+        child: Tooltip(
+          message: tooltip,
+          child: Container(
+            width: 42,
+            height: 42,
+            alignment: Alignment.center,
+            child: Icon(icon, size: 20, color: iconColor ?? AppColors.inkLight),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGoogleStyleMarker(Listing listing, bool isSelected) {
+    final pinColor = _getKindColor(listing);
+
+    return AnimatedScale(
+      scale: isSelected ? 1.15 : 1.0,
+      duration: const Duration(milliseconds: 200),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: isSelected ? 38 : 30,
+            height: isSelected ? 38 : 30,
+            decoration: BoxDecoration(
+              color: pinColor,
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: isSelected ? 2.5 : 2.0),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.3),
+                  blurRadius: 6,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Center(
+              child: Icon(
+                _getCategoryIcon(listing.category),
+                size: isSelected ? 18 : 14,
+                color: Colors.white,
+              ),
+            ),
+          ),
+          CustomPaint(
+            size: const Size(10, 6),
+            painter: _PinTipPainter(color: pinColor),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUserLocationMarker() {
+    return Container(
+      width: 26,
+      height: 26,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.myLocation.withValues(alpha: 0.4),
+            blurRadius: 6,
+            spreadRadius: 2,
+          ),
+        ],
+      ),
+      child: Center(
+        child: Container(
+          width: 14,
+          height: 14,
+          decoration: const BoxDecoration(
+            color: AppColors.myLocation,
+            shape: BoxShape.circle,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Color _getKindColor(Listing listing) {
+    if (listing.isService) return AppColors.teal;
+    if (listing.isPlace) return AppColors.indigo;
+    return AppColors.amber;
+  }
+
+  IconData _getCategoryIcon(String category) {
+    final cat = category.toLowerCase();
+    if (cat.contains('electric')) return Icons.bolt;
+    if (cat.contains('plumb')) return Icons.build;
+    if (cat.contains('hospital') || cat.contains('pharmacy')) return Icons.local_hospital;
+    if (cat.contains('college')) return Icons.school;
+    if (cat.contains('shop') || cat.contains('market')) return Icons.storefront;
+    return Icons.place;
+  }
+
   String _getDistance(Listing listing) {
     if (listing.latitude == null || listing.longitude == null) return '';
     final meters = _locationService.calculateDistanceMeters(
@@ -229,169 +633,23 @@ class _MapViewState extends State<MapView> {
   }
 }
 
-/// Custom radar canvas rendering concentric range circles, user center pin,
-/// and interactive listing marker pins with real offset calculations.
-class _RadarMapCanvas extends StatelessWidget {
-  final double userLat;
-  final double userLng;
-  final List<Listing> listings;
-  final Listing? selectedListing;
-  final ValueChanged<Listing> onListingSelected;
-
-  const _RadarMapCanvas({
-    required this.userLat,
-    required this.userLng,
-    required this.listings,
-    required this.selectedListing,
-    required this.onListingSelected,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final size = Size(constraints.maxWidth, constraints.maxHeight);
-        final center = Offset(size.width / 2, size.height / 2 - 30);
-        const maxRadiusMeters = 3000.0;
-        final canvasRadius = math.min(size.width, size.height) * 0.44;
-
-        return Stack(
-          children: [
-            // Background Grid and Rings
-            CustomPaint(
-              size: size,
-              painter: _RadarBackgroundPainter(center: center, canvasRadius: canvasRadius),
-            ),
-
-            // User Center Pin
-            Positioned(
-              left: center.dx - 16,
-              top: center.dy - 16,
-              child: Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: AppColors.myLocation.withValues(alpha: 0.2),
-                  shape: BoxShape.circle,
-                ),
-                child: Center(
-                  child: Container(
-                    width: 14,
-                    height: 14,
-                    decoration: const BoxDecoration(
-                      color: AppColors.myLocation,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-
-            // Listing Markers
-            ...listings.map((l) {
-              if (l.latitude == null || l.longitude == null) return const SizedBox.shrink();
-
-              // Compute offset in meters
-              final dLat = (l.latitude! - userLat) * 111000.0;
-              final dLng = (l.longitude! - userLng) * (111000.0 * math.cos(userLat * math.pi / 180.0));
-
-              // Map to canvas coordinates
-              final scale = canvasRadius / maxRadiusMeters;
-              final pinX = center.dx + (dLng * scale).clamp(-canvasRadius, canvasRadius);
-              final pinY = center.dy - (dLat * scale).clamp(-canvasRadius, canvasRadius);
-
-              final isSelected = selectedListing?.id == l.id;
-              final pinColor = l.isService
-                  ? AppColors.teal
-                  : (l.isPlace ? AppColors.indigo : AppColors.amber);
-
-              return Positioned(
-                left: pinX - 18,
-                top: pinY - 18,
-                child: GestureDetector(
-                  onTap: () => onListingSelected(l),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    width: isSelected ? 40 : 34,
-                    height: isSelected ? 40 : 34,
-                    decoration: BoxDecoration(
-                      color: isSelected ? pinColor : Colors.white,
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: pinColor,
-                        width: isSelected ? 3 : 2,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: pinColor.withValues(alpha: 0.35),
-                          blurRadius: isSelected ? 10 : 4,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Icon(
-                      _getCategoryIcon(l.category),
-                      size: isSelected ? 20 : 16,
-                      color: isSelected ? Colors.white : pinColor,
-                    ),
-                  ),
-                ),
-              );
-            }),
-          ],
-        );
-      },
-    );
-  }
-
-  IconData _getCategoryIcon(String category) {
-    final cat = category.toLowerCase();
-    if (cat.contains('electric')) return Icons.bolt;
-    if (cat.contains('plumb')) return Icons.build;
-    if (cat.contains('hospital') || cat.contains('pharmacy')) return Icons.local_hospital;
-    if (cat.contains('college')) return Icons.school;
-    if (cat.contains('shop') || cat.contains('market')) return Icons.storefront;
-    return Icons.place;
-  }
-}
-
-class _RadarBackgroundPainter extends CustomPainter {
-  final Offset center;
-  final double canvasRadius;
-
-  _RadarBackgroundPainter({required this.center, required this.canvasRadius});
+class _PinTipPainter extends CustomPainter {
+  final Color color;
+  _PinTipPainter({required this.color});
 
   @override
   void paint(Canvas canvas, Size size) {
-    final ringPaint = Paint()
-      ..color = AppColors.lineLight.withValues(alpha: 0.8)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.0;
-
-    final fillPaint = Paint()
-      ..color = const Color(0xFFF7FAFA)
+    final paint = Paint()
+      ..color = color
       ..style = PaintingStyle.fill;
-
-    // Outer radar fill
-    canvas.drawCircle(center, canvasRadius, fillPaint);
-
-    // Range rings (500m, 1km, 2km, 3km)
-    canvas.drawCircle(center, canvasRadius * 0.25, ringPaint);
-    canvas.drawCircle(center, canvasRadius * 0.5, ringPaint);
-    canvas.drawCircle(center, canvasRadius * 0.75, ringPaint);
-    canvas.drawCircle(center, canvasRadius, ringPaint);
-
-    // Crosshairs
-    final linePaint = Paint()
-      ..color = AppColors.lineLight.withValues(alpha: 0.5)
-      ..strokeWidth = 1.0;
-
-    canvas.drawLine(Offset(center.dx - canvasRadius, center.dy), Offset(center.dx + canvasRadius, center.dy), linePaint);
-    canvas.drawLine(Offset(center.dx, center.dy - canvasRadius), Offset(center.dx, center.dy + canvasRadius), linePaint);
+    final path = Path()
+      ..moveTo(0, 0)
+      ..lineTo(size.width, 0)
+      ..lineTo(size.width / 2, size.height)
+      ..close();
+    canvas.drawPath(path, paint);
   }
 
   @override
-  bool shouldRepaint(covariant _RadarBackgroundPainter oldDelegate) {
-    return oldDelegate.center != center || oldDelegate.canvasRadius != canvasRadius;
-  }
+  bool shouldRepaint(covariant _PinTipPainter oldDelegate) => oldDelegate.color != color;
 }
