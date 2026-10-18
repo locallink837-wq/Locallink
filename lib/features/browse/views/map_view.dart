@@ -10,7 +10,7 @@ import 'place_detail_view.dart';
 import 'provider_detail_view.dart';
 import 'shop_detail_view.dart';
 
-/// Real Interactive Google-Maps-Style Map Explorer
+/// Real Interactive Google Maps Explorer
 /// Module 2 - Browse (home, lists, detail, map)  |  Owner: A
 class MapView extends StatefulWidget {
   const MapView({super.key});
@@ -30,20 +30,36 @@ class _MapViewState extends State<MapView> {
   List<Listing> _allListings = [];
   Listing? _selectedListing;
   bool _isLoading = true;
-  int _mapStyleIndex = 0; // 0 = CartoDB Voyager (Google style), 1 = OSM Standard
+  int _mapStyleIndex = 0; // 0 = Default, 1 = Satellite, 2 = Terrain
 
-  final double _userLat = Env.defaultLatitude;
-  final double _userLng = Env.defaultLongitude;
+  double _userLat = Env.defaultLatitude;
+  double _userLng = Env.defaultLongitude;
 
-  // Real world high quality street map tile layers
-  static const List<Map<String, String>> _tileProviders = [
+  // Real Google Maps Tile Servers
+  // lyrs=m: Standard Google Roadmap
+  // lyrs=y: Google Hybrid Satellite (imagery + roads + labels)
+  // lyrs=p: Google Terrain (contours + roads + labels)
+  static const List<Map<String, dynamic>> _tileProviders = [
     {
-      'name': 'Google Style',
-      'url': 'https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
+      'name': 'Default',
+      'subtitle': 'Google Roadmap',
+      'icon': Icons.map_outlined,
+      'url': 'https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+      'subdomains': ['0', '1', '2', '3'],
     },
     {
-      'name': 'OpenStreetMap',
-      'url': 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+      'name': 'Satellite',
+      'subtitle': 'Google Satellite Hybrid',
+      'icon': Icons.satellite_alt_outlined,
+      'url': 'https://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+      'subdomains': ['0', '1', '2', '3'],
+    },
+    {
+      'name': 'Terrain',
+      'subtitle': 'Google Topo Terrain',
+      'icon': Icons.terrain_outlined,
+      'url': 'https://mt{s}.google.com/vt/lyrs=p&x={x}&y={y}&z={z}',
+      'subdomains': ['0', '1', '2', '3'],
     },
   ];
 
@@ -55,6 +71,13 @@ class _MapViewState extends State<MapView> {
 
   Future<void> _loadListings() async {
     setState(() => _isLoading = true);
+
+    try {
+      final pos = await _locationService.getCurrentPosition();
+      _userLat = pos.latitude;
+      _userLng = pos.longitude;
+    } catch (_) {}
+
     final list = await _repository.fetchNearbyListings(
       userLat: _userLat,
       userLng: _userLng,
@@ -66,6 +89,7 @@ class _MapViewState extends State<MapView> {
         _selectedListing = list.isNotEmpty ? list.first : null;
         _isLoading = false;
       });
+      _mapController.move(LatLng(_userLat, _userLng), 14.5);
     }
   }
 
@@ -86,7 +110,7 @@ class _MapViewState extends State<MapView> {
 
   void _zoomIn() {
     final currentZoom = _mapController.camera.zoom;
-    if (currentZoom < 18) {
+    if (currentZoom < 19) {
       _mapController.move(_mapController.camera.center, currentZoom + 1);
     }
   }
@@ -99,23 +123,103 @@ class _MapViewState extends State<MapView> {
   }
 
   void _recenterOnUser() {
-    _mapController.move(LatLng(_userLat, _userLng), 15.0);
+    _mapController.move(LatLng(_userLat, _userLng), 15.5);
   }
 
-  void _toggleMapStyle() {
-    setState(() {
-      _mapStyleIndex = (_mapStyleIndex + 1) % _tileProviders.length;
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Switched map style to ${_tileProviders[_mapStyleIndex]['name']}'),
-        duration: const Duration(seconds: 1),
+  void _showLayerSelector() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: AppColors.lineLight,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                const Text(
+                  'Map type',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.inkLight,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: List.generate(_tileProviders.length, (idx) {
+                    final item = _tileProviders[idx];
+                    final isSelected = _mapStyleIndex == idx;
+                    return GestureDetector(
+                      onTap: () {
+                        setState(() => _mapStyleIndex = idx);
+                        Navigator.pop(ctx);
+                      },
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 68,
+                            height: 68,
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? AppColors.teal.withValues(alpha: 0.12)
+                                  : const Color(0xFFF1F5F5),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: isSelected ? AppColors.teal : AppColors.lineLight,
+                                width: isSelected ? 2.5 : 1,
+                              ),
+                            ),
+                            child: Icon(
+                              item['icon'] as IconData,
+                              size: 32,
+                              color: isSelected ? AppColors.teal : AppColors.secondaryMuteLight,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            item['name'] as String,
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                              color: isSelected ? AppColors.teal : AppColors.inkLight,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                ),
+                const SizedBox(height: 12),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final activeTile = _tileProviders[_mapStyleIndex];
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Map Explorer'),
@@ -140,14 +244,14 @@ class _MapViewState extends State<MapView> {
           ? const Center(child: CircularProgressIndicator(color: AppColors.teal))
           : Stack(
               children: [
-                // Interactive Real Map
+                // Real Google Maps Engine
                 FlutterMap(
                   mapController: _mapController,
                   options: MapOptions(
                     initialCenter: LatLng(_userLat, _userLng),
                     initialZoom: 14.5,
                     minZoom: 4,
-                    maxZoom: 19,
+                    maxZoom: 20,
                     interactionOptions: const InteractionOptions(
                       flags: InteractiveFlag.all,
                     ),
@@ -156,11 +260,13 @@ class _MapViewState extends State<MapView> {
                     },
                   ),
                   children: [
-                    // Street Map Tiles
+                    // Official Google Maps Tiles
                     TileLayer(
-                      urlTemplate: _tileProviders[_mapStyleIndex]['url']!,
-                      userAgentPackageName: 'com.localink.app',
-                      maxZoom: 19,
+                      key: ValueKey(activeTile['url']),
+                      urlTemplate: activeTile['url'] as String,
+                      subdomains: (activeTile['subdomains'] as List<String>),
+                      userAgentPackageName: 'com.google.android.apps.maps',
+                      maxZoom: 20,
                     ),
 
                     // User Location Accuracy Radius
@@ -177,7 +283,7 @@ class _MapViewState extends State<MapView> {
                       ],
                     ),
 
-                    // Google Maps Style Markers
+                    // Google Maps Markers
                     MarkerLayer(
                       markers: [
                         // Listings Pins
@@ -189,15 +295,15 @@ class _MapViewState extends State<MapView> {
 
                           return Marker(
                             point: LatLng(listing.latitude!, listing.longitude!),
-                            width: isSelected ? 48 : 38,
-                            height: isSelected ? 56 : 46,
+                            width: isSelected ? 48 : 36,
+                            height: isSelected ? 56 : 44,
                             alignment: Alignment.topCenter,
                             child: GestureDetector(
                               onTap: () {
                                 setState(() => _selectedListing = listing);
                                 _mapController.move(
                                   LatLng(listing.latitude!, listing.longitude!),
-                                  15.5,
+                                  16.0,
                                 );
                               },
                               child: _buildGoogleStyleMarker(listing, isSelected),
@@ -205,11 +311,11 @@ class _MapViewState extends State<MapView> {
                           );
                         }).whereType<Marker>(),
 
-                        // Current User Location Marker
+                        // Current User Location Marker (Google Blue Dot)
                         Marker(
                           point: LatLng(_userLat, _userLng),
-                          width: 30,
-                          height: 30,
+                          width: 32,
+                          height: 32,
                           child: _buildUserLocationMarker(),
                         ),
                       ],
@@ -276,11 +382,11 @@ class _MapViewState extends State<MapView> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Map Layer Style Switcher
+                      // Google Maps Layer Style Switcher
                       _buildFloatingBtn(
                         icon: Icons.layers_outlined,
-                        tooltip: 'Switch Map Style',
-                        onTap: _toggleMapStyle,
+                        tooltip: 'Layers (Map, Satellite, Terrain)',
+                        onTap: _showLayerSelector,
                       ),
                       const SizedBox(height: 10),
 
@@ -308,6 +414,35 @@ class _MapViewState extends State<MapView> {
                         onTap: _zoomOut,
                       ),
                     ],
+                  ),
+                ),
+
+                // Google Attribution Logo (Bottom Left)
+                Positioned(
+                  left: 14,
+                  bottom: _selectedListing != null ? 180 : 20,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.85),
+                      borderRadius: BorderRadius.circular(4),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x10000000),
+                          blurRadius: 3,
+                          offset: Offset(0, 1),
+                        ),
+                      ],
+                    ),
+                    child: const Text(
+                      'Google',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF5F6368),
+                        letterSpacing: -0.2,
+                      ),
+                    ),
                   ),
                 ),
 
@@ -536,72 +671,116 @@ class _MapViewState extends State<MapView> {
     );
   }
 
+  /// Authentic Google Maps Teardrop Pin Marker
   Widget _buildGoogleStyleMarker(Listing listing, bool isSelected) {
     final pinColor = _getKindColor(listing);
 
     return AnimatedScale(
-      scale: isSelected ? 1.15 : 1.0,
+      scale: isSelected ? 1.2 : 1.0,
       duration: const Duration(milliseconds: 200),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+      child: Stack(
+        alignment: Alignment.topCenter,
         children: [
-          Container(
-            width: isSelected ? 38 : 30,
-            height: isSelected ? 38 : 30,
-            decoration: BoxDecoration(
-              color: pinColor,
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.white, width: isSelected ? 2.5 : 2.0),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.3),
-                  blurRadius: 6,
-                  offset: const Offset(0, 3),
-                ),
-              ],
-            ),
-            child: Center(
-              child: Icon(
-                _getCategoryIcon(listing.category),
-                size: isSelected ? 18 : 14,
-                color: Colors.white,
+          // Drop Shadow below tip
+          Positioned(
+            bottom: 0,
+            child: Container(
+              width: 14,
+              height: 5,
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.25),
+                borderRadius: const BorderRadius.all(Radius.elliptical(14, 5)),
               ),
             ),
           ),
-          CustomPaint(
-            size: const Size(10, 6),
-            painter: _PinTipPainter(color: pinColor),
+          // Pin Body
+          Padding(
+            padding: const EdgeInsets.only(bottom: 3),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: isSelected ? 38 : 30,
+                  height: isSelected ? 38 : 30,
+                  decoration: BoxDecoration(
+                    color: pinColor,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: isSelected ? 2.5 : 2.0),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.28),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Center(
+                    child: Container(
+                      width: isSelected ? 24 : 18,
+                      height: isSelected ? 24 : 18,
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        _getCategoryIcon(listing.category),
+                        size: isSelected ? 14 : 11,
+                        color: pinColor,
+                      ),
+                    ),
+                  ),
+                ),
+                CustomPaint(
+                  size: const Size(10, 6),
+                  painter: _PinTipPainter(color: pinColor),
+                ),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
+  /// Google Maps Signature Blue Dot
   Widget _buildUserLocationMarker() {
-    return Container(
-      width: 26,
-      height: 26,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.myLocation.withValues(alpha: 0.4),
-            blurRadius: 6,
-            spreadRadius: 2,
-          ),
-        ],
-      ),
-      child: Center(
-        child: Container(
-          width: 14,
-          height: 14,
-          decoration: const BoxDecoration(
-            color: AppColors.myLocation,
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        Container(
+          width: 28,
+          height: 28,
+          decoration: BoxDecoration(
+            color: AppColors.myLocation.withValues(alpha: 0.25),
             shape: BoxShape.circle,
           ),
         ),
-      ),
+        Container(
+          width: 16,
+          height: 16,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.25),
+                blurRadius: 3,
+                offset: const Offset(0, 1),
+              ),
+            ],
+          ),
+          child: Center(
+            child: Container(
+              width: 12,
+              height: 12,
+              decoration: const BoxDecoration(
+                color: AppColors.myLocation,
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
