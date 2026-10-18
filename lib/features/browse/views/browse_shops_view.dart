@@ -37,8 +37,8 @@ class _BrowseShopsViewState extends State<BrowseShopsView> {
   bool _isLoading = true;
   List<Listing> _shops = [];
 
-  final double _userLat = Env.defaultLatitude;
-  final double _userLng = Env.defaultLongitude;
+  double _userLat = Env.defaultLatitude;
+  double _userLng = Env.defaultLongitude;
 
   @override
   void initState() {
@@ -49,7 +49,13 @@ class _BrowseShopsViewState extends State<BrowseShopsView> {
   Future<void> _fetchShops() async {
     setState(() => _isLoading = true);
 
-    final categoryFilter = _selectedCategory == 'All' ? null : _selectedCategory;
+    final position = await _locationService.getCurrentPosition();
+    _userLat = position.latitude;
+    _userLng = position.longitude;
+
+    final categoryFilter = _selectedCategory == 'All'
+        ? null
+        : _selectedCategory;
     final results = await _repository.fetchListings(
       kind: 'shop',
       category: categoryFilter,
@@ -133,7 +139,10 @@ class _BrowseShopsViewState extends State<BrowseShopsView> {
                   child: Row(
                     children: [
                       FilterChip(
-                        label: const Text('Open Now', style: TextStyle(fontSize: 11)),
+                        label: const Text(
+                          'Open Now',
+                          style: TextStyle(fontSize: 11),
+                        ),
                         selected: _openNowOnly,
                         selectedColor: AppColors.amber.withValues(alpha: 0.15),
                         checkmarkColor: AppColors.amber,
@@ -144,7 +153,10 @@ class _BrowseShopsViewState extends State<BrowseShopsView> {
                       ),
                       const SizedBox(width: 8),
                       FilterChip(
-                        label: const Text('Verified Only', style: TextStyle(fontSize: 11)),
+                        label: const Text(
+                          'Verified Only',
+                          style: TextStyle(fontSize: 11),
+                        ),
                         selected: _verifiedOnly,
                         selectedColor: AppColors.amber.withValues(alpha: 0.15),
                         checkmarkColor: AppColors.amber,
@@ -164,44 +176,46 @@ class _BrowseShopsViewState extends State<BrowseShopsView> {
           // Listings List
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator(color: AppColors.amber))
+                ? const Center(
+                    child: CircularProgressIndicator(color: AppColors.amber),
+                  )
                 : _filteredShops.isEmpty
-                    ? EmptyState(
-                        title: 'No shops found',
-                        message: 'Try clearing your filters to see more local stores and pharmacies.',
-                        icon: Icons.storefront_outlined,
-                        actionLabel: 'Reset Filters',
-                        onAction: () {
-                          setState(() {
-                            _selectedCategory = 'All';
-                            _verifiedOnly = false;
-                            _openNowOnly = false;
-                            _searchQuery = '';
-                          });
-                          _fetchShops();
-                        },
-                      )
-                    : RefreshIndicator(
-                        onRefresh: _fetchShops,
-                        color: AppColors.amber,
-                        child: ListView.separated(
-                          padding: const EdgeInsets.all(16),
-                          itemCount: _filteredShops.length,
-                          separatorBuilder: (_, _) => const SizedBox(height: 8),
-                          itemBuilder: (context, index) {
-                            final listing = _filteredShops[index];
-                            return ListingCard(
-                              listing: listing,
-                              distanceLabel: _getDistance(listing),
-                              onTap: () => Navigator.pushNamed(
-                                context,
-                                ShopDetailView.route,
-                                arguments: listing,
-                              ),
-                            );
-                          },
-                        ),
-                      ),
+                ? EmptyState(
+                    title: 'No shops found',
+                    message: 'Try clearing your filters to see more local stores and pharmacies.',
+                    icon: Icons.storefront_outlined,
+                    actionLabel: 'Reset Filters',
+                    onAction: () {
+                      setState(() {
+                        _selectedCategory = 'All';
+                        _verifiedOnly = false;
+                        _openNowOnly = false;
+                        _searchQuery = '';
+                      });
+                      _fetchShops();
+                    },
+                  )
+                : RefreshIndicator(
+                    onRefresh: _fetchShops,
+                    color: AppColors.amber,
+                    child: ListView.separated(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: _filteredShops.length,
+                      separatorBuilder: (_, _) => const SizedBox(height: 8),
+                      itemBuilder: (context, index) {
+                        final listing = _filteredShops[index];
+                        return ListingCard(
+                          listing: listing,
+                          distanceLabel: _getDistance(listing),
+                          onTap: () => Navigator.pushNamed(
+                            context,
+                            ShopDetailView.route,
+                            arguments: listing,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
           ),
         ],
       ),

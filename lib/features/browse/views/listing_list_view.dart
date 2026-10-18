@@ -36,8 +36,8 @@ class _ListingListViewState extends State<ListingListView> {
 
   List<Listing> _listings = [];
 
-  final double _userLat = Env.defaultLatitude;
-  final double _userLng = Env.defaultLongitude;
+  double _userLat = Env.defaultLatitude;
+  double _userLng = Env.defaultLongitude;
 
   @override
   void didChangeDependencies() {
@@ -57,6 +57,10 @@ class _ListingListViewState extends State<ListingListView> {
 
   Future<void> _fetchData() async {
     setState(() => _isLoading = true);
+
+    final position = await _locationService.getCurrentPosition();
+    _userLat = position.latitude;
+    _userLng = position.longitude;
 
     final raw = await _repository.fetchListings(
       kind: _kind,
@@ -101,7 +105,11 @@ class _ListingListViewState extends State<ListingListView> {
 
   void _openDetail(Listing listing) {
     if (listing.isService) {
-      Navigator.pushNamed(context, ProviderDetailView.route, arguments: listing);
+      Navigator.pushNamed(
+        context,
+        ProviderDetailView.route,
+        arguments: listing,
+      );
     } else if (listing.isPlace) {
       Navigator.pushNamed(context, PlaceDetailView.route, arguments: listing);
     } else {
@@ -159,7 +167,10 @@ class _ListingListViewState extends State<ListingListView> {
                   ),
                   label: Text(
                     _sortByRating ? 'Top Rated' : 'Nearest',
-                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                   onPressed: () {
                     setState(() => _sortByRating = !_sortByRating);
@@ -174,40 +185,43 @@ class _ListingListViewState extends State<ListingListView> {
           // Content
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator(color: AppColors.teal))
+                ? const Center(
+                    child: CircularProgressIndicator(color: AppColors.teal),
+                  )
                 : _displayListings.isEmpty
-                    ? EmptyState(
-                        title: 'No listings found',
-                        message: 'No places match the active criteria in this category.',
-                        icon: Icons.list_alt_rounded,
-                        actionLabel: 'Reset Filters',
-                        onAction: () {
-                          setState(() {
-                            _verifiedOnly = false;
-                            _openNowOnly = false;
-                            _searchQuery = '';
-                            _sortByRating = false;
-                          });
-                          _fetchData();
-                        },
-                      )
-                    : RefreshIndicator(
-                        onRefresh: _fetchData,
-                        color: AppColors.teal,
-                        child: ListView.separated(
-                          padding: const EdgeInsets.all(16),
-                          itemCount: _displayListings.length,
-                          separatorBuilder: (_, _) => const SizedBox(height: 8),
-                          itemBuilder: (context, index) {
-                            final listing = _displayListings[index];
-                            return ListingCard(
-                              listing: listing,
-                              distanceLabel: _getDistance(listing),
-                              onTap: () => _openDetail(listing),
-                            );
-                          },
-                        ),
-                      ),
+                ? EmptyState(
+                    title: 'No listings found',
+                    message:
+                        'No places match the active criteria in this category.',
+                    icon: Icons.list_alt_rounded,
+                    actionLabel: 'Reset Filters',
+                    onAction: () {
+                      setState(() {
+                        _verifiedOnly = false;
+                        _openNowOnly = false;
+                        _searchQuery = '';
+                        _sortByRating = false;
+                      });
+                      _fetchData();
+                    },
+                  )
+                : RefreshIndicator(
+                    onRefresh: _fetchData,
+                    color: AppColors.teal,
+                    child: ListView.separated(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: _displayListings.length,
+                      separatorBuilder: (_, _) => const SizedBox(height: 8),
+                      itemBuilder: (context, index) {
+                        final listing = _displayListings[index];
+                        return ListingCard(
+                          listing: listing,
+                          distanceLabel: _getDistance(listing),
+                          onTap: () => _openDetail(listing),
+                        );
+                      },
+                    ),
+                  ),
           ),
         ],
       ),

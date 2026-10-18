@@ -37,8 +37,8 @@ class _BrowsePlacesViewState extends State<BrowsePlacesView> {
   bool _isLoading = true;
   List<Listing> _places = [];
 
-  final double _userLat = Env.defaultLatitude;
-  final double _userLng = Env.defaultLongitude;
+  double _userLat = Env.defaultLatitude;
+  double _userLng = Env.defaultLongitude;
 
   @override
   void initState() {
@@ -49,7 +49,13 @@ class _BrowsePlacesViewState extends State<BrowsePlacesView> {
   Future<void> _fetchPlaces() async {
     setState(() => _isLoading = true);
 
-    final categoryFilter = _selectedCategory == 'All' ? null : _selectedCategory;
+    final position = await _locationService.getCurrentPosition();
+    _userLat = position.latitude;
+    _userLng = position.longitude;
+
+    final categoryFilter = _selectedCategory == 'All'
+        ? null
+        : _selectedCategory;
     final results = await _repository.fetchListings(
       kind: 'place',
       category: categoryFilter,
@@ -137,7 +143,10 @@ class _BrowsePlacesViewState extends State<BrowsePlacesView> {
                   child: Row(
                     children: [
                       FilterChip(
-                        label: const Text('Open 24x7', style: TextStyle(fontSize: 11)),
+                        label: const Text(
+                          'Open 24x7',
+                          style: TextStyle(fontSize: 11),
+                        ),
                         selected: _open24x7Only,
                         selectedColor: AppColors.indigo.withValues(alpha: 0.15),
                         checkmarkColor: AppColors.indigo,
@@ -148,7 +157,10 @@ class _BrowsePlacesViewState extends State<BrowsePlacesView> {
                       ),
                       const SizedBox(width: 8),
                       FilterChip(
-                        label: const Text('Verified Only', style: TextStyle(fontSize: 11)),
+                        label: const Text(
+                          'Verified Only',
+                          style: TextStyle(fontSize: 11),
+                        ),
                         selected: _verifiedOnly,
                         selectedColor: AppColors.indigo.withValues(alpha: 0.15),
                         checkmarkColor: AppColors.indigo,
@@ -168,44 +180,47 @@ class _BrowsePlacesViewState extends State<BrowsePlacesView> {
           // Listings List
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator(color: AppColors.indigo))
+                ? const Center(
+                    child: CircularProgressIndicator(color: AppColors.indigo),
+                  )
                 : _filteredPlaces.isEmpty
-                    ? EmptyState(
-                        title: 'No places found',
-                        message: 'No public places matched your filters in this area.',
-                        icon: Icons.account_balance_outlined,
-                        actionLabel: 'Reset Filters',
-                        onAction: () {
-                          setState(() {
-                            _selectedCategory = 'All';
-                            _verifiedOnly = false;
-                            _open24x7Only = false;
-                            _searchQuery = '';
-                          });
-                          _fetchPlaces();
-                        },
-                      )
-                    : RefreshIndicator(
-                        onRefresh: _fetchPlaces,
-                        color: AppColors.indigo,
-                        child: ListView.separated(
-                          padding: const EdgeInsets.all(16),
-                          itemCount: _filteredPlaces.length,
-                          separatorBuilder: (_, _) => const SizedBox(height: 8),
-                          itemBuilder: (context, index) {
-                            final listing = _filteredPlaces[index];
-                            return ListingCard(
-                              listing: listing,
-                              distanceLabel: _getDistance(listing),
-                              onTap: () => Navigator.pushNamed(
-                                context,
-                                PlaceDetailView.route,
-                                arguments: listing,
-                              ),
-                            );
-                          },
-                        ),
-                      ),
+                ? EmptyState(
+                    title: 'No places found',
+                    message:
+                        'No public places matched your filters in this area.',
+                    icon: Icons.account_balance_outlined,
+                    actionLabel: 'Reset Filters',
+                    onAction: () {
+                      setState(() {
+                        _selectedCategory = 'All';
+                        _verifiedOnly = false;
+                        _open24x7Only = false;
+                        _searchQuery = '';
+                      });
+                      _fetchPlaces();
+                    },
+                  )
+                : RefreshIndicator(
+                    onRefresh: _fetchPlaces,
+                    color: AppColors.indigo,
+                    child: ListView.separated(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: _filteredPlaces.length,
+                      separatorBuilder: (_, _) => const SizedBox(height: 8),
+                      itemBuilder: (context, index) {
+                        final listing = _filteredPlaces[index];
+                        return ListingCard(
+                          listing: listing,
+                          distanceLabel: _getDistance(listing),
+                          onTap: () => Navigator.pushNamed(
+                            context,
+                            PlaceDetailView.route,
+                            arguments: listing,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
           ),
         ],
       ),

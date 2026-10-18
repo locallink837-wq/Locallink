@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:geocoding/geocoding.dart';
 
 import '../../../app/theme/app_theme.dart';
 import '../../../core/core.dart';
@@ -32,7 +33,7 @@ class _HomeViewState extends State<HomeView> {
   List<Listing> _places = [];
   List<Listing> _shops = [];
   bool _isLoading = true;
-  final String _currentArea = Env.defaultAreaLabel;
+  String _currentArea = Env.defaultAreaLabel;
 
   double _userLat = Env.defaultLatitude;
   double _userLng = Env.defaultLongitude;
@@ -50,6 +51,22 @@ class _HomeViewState extends State<HomeView> {
       final pos = await _locationService.getCurrentPosition();
       _userLat = pos.latitude;
       _userLng = pos.longitude;
+      final placemarks = await placemarkFromCoordinates(
+        pos.latitude,
+        pos.longitude,
+      );
+      if (placemarks.isNotEmpty) {
+        final place = placemarks.first;
+        final area =
+            [place.subLocality, place.locality, place.administrativeArea]
+                .whereType<String>()
+                .where((value) => value.trim().isNotEmpty)
+                .take(2)
+                .join(', ');
+        if (area.isNotEmpty && mounted) {
+          setState(() => _currentArea = area);
+        }
+      }
     } catch (_) {}
 
     final allListings = await _repository.fetchNearbyListings(
@@ -69,7 +86,11 @@ class _HomeViewState extends State<HomeView> {
 
   void _openDetail(Listing listing) {
     if (listing.isService) {
-      Navigator.pushNamed(context, ProviderDetailView.route, arguments: listing);
+      Navigator.pushNamed(
+        context,
+        ProviderDetailView.route,
+        arguments: listing,
+      );
     } else if (listing.isPlace) {
       Navigator.pushNamed(context, PlaceDetailView.route, arguments: listing);
     } else {
@@ -90,7 +111,11 @@ class _HomeViewState extends State<HomeView> {
                 color: AppColors.teal.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.location_on, size: 18, color: AppColors.teal),
+              child: const Icon(
+                Icons.location_on,
+                size: 18,
+                color: AppColors.teal,
+              ),
             ),
             const SizedBox(width: 8),
             Expanded(
@@ -124,8 +149,12 @@ class _HomeViewState extends State<HomeView> {
         actions: [
           IconButton(
             tooltip: 'Saved Places',
-            icon: const Icon(Icons.bookmark_outline_rounded, color: AppColors.inkLight),
-            onPressed: () => Navigator.pushNamed(context, SavedPlacesView.route),
+            icon: const Icon(
+              Icons.bookmark_outline_rounded,
+              color: AppColors.inkLight,
+            ),
+            onPressed: () =>
+                Navigator.pushNamed(context, SavedPlacesView.route),
           ),
           const SizedBox(width: 4),
         ],
@@ -143,7 +172,8 @@ class _HomeViewState extends State<HomeView> {
               AppSearchBar(
                 hintText: 'Search services, places & shops...',
                 readOnly: true,
-                onTap: () => Navigator.pushNamed(context, SearchResultsView.route),
+                onTap: () =>
+                    Navigator.pushNamed(context, SearchResultsView.route),
               ),
               const SizedBox(height: 12),
 
@@ -163,7 +193,8 @@ class _HomeViewState extends State<HomeView> {
                     count: '${_services.length}+ Nearby',
                     color: AppColors.teal,
                     icon: Icons.handyman_rounded,
-                    onTap: () => Navigator.pushNamed(context, BrowseServicesView.route),
+                    onTap: () =>
+                        Navigator.pushNamed(context, BrowseServicesView.route),
                   ),
                   const SizedBox(width: 8),
                   _buildModuleCard(
@@ -172,7 +203,8 @@ class _HomeViewState extends State<HomeView> {
                     count: '${_places.length}+ Nearby',
                     color: AppColors.indigo,
                     icon: Icons.account_balance_rounded,
-                    onTap: () => Navigator.pushNamed(context, BrowsePlacesView.route),
+                    onTap: () =>
+                        Navigator.pushNamed(context, BrowsePlacesView.route),
                   ),
                   const SizedBox(width: 8),
                   _buildModuleCard(
@@ -181,7 +213,8 @@ class _HomeViewState extends State<HomeView> {
                     count: '${_shops.length}+ Nearby',
                     color: AppColors.amber,
                     icon: Icons.storefront_rounded,
-                    onTap: () => Navigator.pushNamed(context, BrowseShopsView.route),
+                    onTap: () =>
+                        Navigator.pushNamed(context, BrowseShopsView.route),
                   ),
                 ],
               ),
@@ -200,7 +233,8 @@ class _HomeViewState extends State<HomeView> {
                     ),
                   ),
                   GestureDetector(
-                    onTap: () => Navigator.pushNamed(context, BrowseServicesView.route),
+                    onTap: () =>
+                        Navigator.pushNamed(context, BrowseServicesView.route),
                     child: const Text(
                       'View all',
                       style: TextStyle(
@@ -271,48 +305,56 @@ class _HomeViewState extends State<HomeView> {
                   ),
                 )
               else
-                ..._services.map((listing) => Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: ListingCard(
-                        listing: listing,
-                        distanceLabel: _getDistance(listing),
-                        onTap: () => _openDetail(listing),
-                      ),
-                    )),
+                ..._services.map(
+                  (listing) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: ListingCard(
+                      listing: listing,
+                      distanceLabel: _getDistance(listing),
+                      onTap: () => _openDetail(listing),
+                    ),
+                  ),
+                ),
               const SizedBox(height: 20),
 
               // Essential Places Section
               _buildSectionHeader(
                 title: 'Public Places & Essentials',
                 color: AppColors.indigo,
-                onViewAll: () => Navigator.pushNamed(context, BrowsePlacesView.route),
+                onViewAll: () =>
+                    Navigator.pushNamed(context, BrowsePlacesView.route),
               ),
               const SizedBox(height: 8),
-              ..._places.map((listing) => Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: ListingCard(
-                      listing: listing,
-                      distanceLabel: _getDistance(listing),
-                      onTap: () => _openDetail(listing),
-                    ),
-                  )),
+              ..._places.map(
+                (listing) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: ListingCard(
+                    listing: listing,
+                    distanceLabel: _getDistance(listing),
+                    onTap: () => _openDetail(listing),
+                  ),
+                ),
+              ),
               const SizedBox(height: 20),
 
               // Popular Shops Section
               _buildSectionHeader(
                 title: 'Daily Shops & Markets',
                 color: AppColors.amber,
-                onViewAll: () => Navigator.pushNamed(context, BrowseShopsView.route),
+                onViewAll: () =>
+                    Navigator.pushNamed(context, BrowseShopsView.route),
               ),
               const SizedBox(height: 8),
-              ..._shops.map((listing) => Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: ListingCard(
-                      listing: listing,
-                      distanceLabel: _getDistance(listing),
-                      onTap: () => _openDetail(listing),
-                    ),
-                  )),
+              ..._shops.map(
+                (listing) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: ListingCard(
+                    listing: listing,
+                    distanceLabel: _getDistance(listing),
+                    onTap: () => _openDetail(listing),
+                  ),
+                ),
+              ),
               const SizedBox(height: 30),
             ],
           ),
@@ -434,11 +476,7 @@ class _HomeViewState extends State<HomeView> {
     Navigator.pushNamed(
       context,
       ListingListView.route,
-      arguments: {
-        'title': category,
-        'kind': kind,
-        'category': category,
-      },
+      arguments: {'title': category, 'kind': kind, 'category': category},
     );
   }
 

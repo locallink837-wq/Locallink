@@ -29,8 +29,23 @@ class _PlaceDetailViewState extends State<PlaceDetailView> {
   List<Review> _reviews = [];
   bool _isLoading = true;
 
-  final double _userLat = Env.defaultLatitude;
-  final double _userLng = Env.defaultLongitude;
+  double _userLat = Env.defaultLatitude;
+  double _userLng = Env.defaultLongitude;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserLocation();
+  }
+
+  Future<void> _loadUserLocation() async {
+    final position = await _locationService.getCurrentPosition();
+    if (!mounted) return;
+    setState(() {
+      _userLat = position.latitude;
+      _userLng = position.longitude;
+    });
+  }
 
   @override
   void didChangeDependencies() {
@@ -53,7 +68,11 @@ class _PlaceDetailViewState extends State<PlaceDetailView> {
   Future<void> _fetchListingById(String id) async {
     final fetched = await _repository.fetchListingById(id);
     if (mounted) {
-      setState(() => _listing = fetched ?? BrowseRepository.demoListings.firstWhere((l) => l.isPlace));
+      setState(
+        () => _listing =
+            fetched ??
+            BrowseRepository.demoListings.firstWhere((l) => l.isPlace),
+      );
       _loadReviews();
     }
   }
@@ -90,16 +109,25 @@ class _PlaceDetailViewState extends State<PlaceDetailView> {
               IconButton(
                 tooltip: isSaved ? 'Remove Bookmark' : 'Save Place',
                 icon: Icon(
-                  isSaved ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
+                  isSaved
+                      ? Icons.bookmark_rounded
+                      : Icons.bookmark_border_rounded,
                   color: isSaved ? AppColors.indigo : AppColors.inkLight,
                 ),
-                onPressed: () {
-                  _savedNotifier.toggle(listing.id);
+                onPressed: () async {
+                  final saved = await _savedNotifier.toggle(listing.id);
+                  if (!context.mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       duration: const Duration(seconds: 1),
                       content: Text(
-                        isSaved ? 'Removed from saved places' : 'Saved to your places',
+                        !saved
+                            ? (_savedNotifier.hasAccountSync
+                                  ? 'Could not update saved places. Please try again.'
+                                  : 'Sign in to save places to your account.')
+                            : isSaved
+                            ? 'Removed from saved places'
+                            : 'Saved to your places',
                       ),
                     ),
                   );
@@ -120,7 +148,11 @@ class _PlaceDetailViewState extends State<PlaceDetailView> {
                     value: 'report',
                     child: Row(
                       children: [
-                        Icon(Icons.report_problem_outlined, size: 18, color: AppColors.red),
+                        Icon(
+                          Icons.report_problem_outlined,
+                          size: 18,
+                          color: AppColors.red,
+                        ),
                         SizedBox(width: 8),
                         Text('Report Wrong Info'),
                       ],
@@ -141,7 +173,9 @@ class _PlaceDetailViewState extends State<PlaceDetailView> {
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(AppDecorations.cardRadius),
+                    borderRadius: BorderRadius.circular(
+                      AppDecorations.cardRadius,
+                    ),
                     border: Border.all(color: AppColors.lineLight),
                     boxShadow: const [
                       BoxShadow(
@@ -164,7 +198,11 @@ class _PlaceDetailViewState extends State<PlaceDetailView> {
                               color: AppColors.indigo.withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(14),
                             ),
-                            child: const Icon(Icons.account_balance_rounded, color: AppColors.indigo, size: 28),
+                            child: const Icon(
+                              Icons.account_balance_rounded,
+                              color: AppColors.indigo,
+                              size: 28,
+                            ),
                           ),
                           const SizedBox(width: 14),
                           Expanded(
@@ -185,7 +223,11 @@ class _PlaceDetailViewState extends State<PlaceDetailView> {
                                     ),
                                     if (listing.verified) ...[
                                       const SizedBox(width: 4),
-                                      const Icon(Icons.verified, color: AppColors.teal, size: 18),
+                                      const Icon(
+                                        Icons.verified,
+                                        color: AppColors.teal,
+                                        size: 18,
+                                      ),
                                     ],
                                   ],
                                 ),
@@ -211,7 +253,10 @@ class _PlaceDetailViewState extends State<PlaceDetailView> {
                       if (listing.highlight.isNotEmpty) ...[
                         const SizedBox(height: 12),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.indigoLight,
                             borderRadius: BorderRadius.circular(8),
@@ -237,7 +282,9 @@ class _PlaceDetailViewState extends State<PlaceDetailView> {
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(AppDecorations.cardRadius),
+                    borderRadius: BorderRadius.circular(
+                      AppDecorations.cardRadius,
+                    ),
                     border: Border.all(color: AppColors.lineLight),
                   ),
                   child: Column(
@@ -263,7 +310,11 @@ class _PlaceDetailViewState extends State<PlaceDetailView> {
                       const SizedBox(height: 8),
                       Row(
                         children: [
-                          const Icon(Icons.schedule, size: 16, color: AppColors.muteLight),
+                          const Icon(
+                            Icons.schedule,
+                            size: 16,
+                            color: AppColors.muteLight,
+                          ),
                           const SizedBox(width: 6),
                           Text(
                             listing.open24x7
@@ -288,7 +339,9 @@ class _PlaceDetailViewState extends State<PlaceDetailView> {
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(AppDecorations.cardRadius),
+                    borderRadius: BorderRadius.circular(
+                      AppDecorations.cardRadius,
+                    ),
                     border: Border.all(color: AppColors.lineLight),
                   ),
                   child: Column(
@@ -320,7 +373,11 @@ class _PlaceDetailViewState extends State<PlaceDetailView> {
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Icon(Icons.place_outlined, size: 18, color: AppColors.muteLight),
+                          const Icon(
+                            Icons.place_outlined,
+                            size: 18,
+                            color: AppColors.muteLight,
+                          ),
                           const SizedBox(width: 6),
                           Expanded(
                             child: Text(
@@ -338,7 +395,11 @@ class _PlaceDetailViewState extends State<PlaceDetailView> {
                         const SizedBox(height: 8),
                         Row(
                           children: [
-                            const Icon(Icons.phone_in_talk_outlined, size: 16, color: AppColors.muteLight),
+                            const Icon(
+                              Icons.phone_in_talk_outlined,
+                              size: 16,
+                              color: AppColors.muteLight,
+                            ),
                             const SizedBox(width: 6),
                             Text(
                               'Helpline: ${listing.phone}',
@@ -387,12 +448,18 @@ class _PlaceDetailViewState extends State<PlaceDetailView> {
                       Expanded(
                         child: AppButton(
                           label: 'Call Helpline',
-                          icon: const Icon(Icons.call, size: 16, color: Colors.white),
+                          icon: const Icon(
+                            Icons.call,
+                            size: 16,
+                            color: Colors.white,
+                          ),
                           color: AppColors.indigo,
                           onPressed: () {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text('Calling ${listing.name}: ${listing.phone}'),
+                                content: Text(
+                                  'Calling ${listing.name}: ${listing.phone}',
+                                ),
                                 backgroundColor: AppColors.indigo,
                               ),
                             );
@@ -404,12 +471,18 @@ class _PlaceDetailViewState extends State<PlaceDetailView> {
                     Expanded(
                       child: AppOutlineButton(
                         label: 'Directions',
-                        icon: const Icon(Icons.directions, size: 16, color: AppColors.indigo),
+                        icon: const Icon(
+                          Icons.directions,
+                          size: 16,
+                          color: AppColors.indigo,
+                        ),
                         color: AppColors.indigo,
                         onPressed: () {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text('Directions to ${listing.address} ($distanceLabel)'),
+                              content: Text(
+                                'Directions to ${listing.address} ($distanceLabel)',
+                              ),
                             ),
                           );
                         },
@@ -439,7 +512,10 @@ class _PlaceDetailViewState extends State<PlaceDetailView> {
                       ),
                       child: const Text(
                         'View all',
-                        style: TextStyle(fontWeight: FontWeight.w700, color: AppColors.indigo),
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.indigo,
+                        ),
                       ),
                     ),
                   ],
@@ -449,15 +525,21 @@ class _PlaceDetailViewState extends State<PlaceDetailView> {
                 if (_isLoading)
                   const Center(child: CircularProgressIndicator())
                 else if (_reviews.isEmpty)
-                  const Text('No reviews yet. Be the first to share your experience!',
-                      style: TextStyle(color: AppColors.muteLight))
+                  const Text(
+                    'No reviews yet. Be the first to share your experience!',
+                    style: TextStyle(color: AppColors.muteLight),
+                  )
                 else
                   ..._reviews.take(3).map((r) => _buildReviewCard(r)),
 
                 const SizedBox(height: 12),
                 AppOutlineButton(
                   label: 'Write a Review',
-                  icon: const Icon(Icons.rate_review_outlined, size: 16, color: AppColors.indigo),
+                  icon: const Icon(
+                    Icons.rate_review_outlined,
+                    size: 16,
+                    color: AppColors.indigo,
+                  ),
                   color: AppColors.indigo,
                   onPressed: () {
                     WriteReviewSheet.show(

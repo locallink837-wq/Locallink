@@ -4,11 +4,8 @@ import '../../../app/theme/app_theme.dart';
 import '../../../core/core.dart';
 import '../data/browse_repository.dart';
 import 'browse_places_view.dart';
-import 'browse_services_view.dart';
 import 'browse_shops_view.dart';
-import 'listing_list_view.dart';
 import 'place_detail_view.dart';
-import 'provider_detail_view.dart';
 import 'search_results_view.dart';
 import 'shop_detail_view.dart';
 
@@ -27,13 +24,12 @@ class _GuestHomeViewState extends State<GuestHomeView> {
   final _repository = BrowseRepository();
   final _locationService = const LocationService();
 
-  List<Listing> _services = [];
   List<Listing> _places = [];
   List<Listing> _shops = [];
   bool _isLoading = true;
 
-  final double _userLat = Env.defaultLatitude;
-  final double _userLng = Env.defaultLongitude;
+  double _userLat = Env.defaultLatitude;
+  double _userLng = Env.defaultLongitude;
 
   @override
   void initState() {
@@ -44,6 +40,10 @@ class _GuestHomeViewState extends State<GuestHomeView> {
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
 
+    final position = await _locationService.getCurrentPosition();
+    _userLat = position.latitude;
+    _userLng = position.longitude;
+
     final allListings = await _repository.fetchNearbyListings(
       userLat: _userLat,
       userLng: _userLng,
@@ -51,7 +51,6 @@ class _GuestHomeViewState extends State<GuestHomeView> {
 
     if (mounted) {
       setState(() {
-        _services = allListings.where((l) => l.isService).take(3).toList();
         _places = allListings.where((l) => l.isPlace).take(3).toList();
         _shops = allListings.where((l) => l.isShop).take(3).toList();
         _isLoading = false;
@@ -60,9 +59,7 @@ class _GuestHomeViewState extends State<GuestHomeView> {
   }
 
   void _openDetail(Listing listing) {
-    if (listing.isService) {
-      Navigator.pushNamed(context, ProviderDetailView.route, arguments: listing);
-    } else if (listing.isPlace) {
+    if (listing.isPlace) {
       Navigator.pushNamed(context, PlaceDetailView.route, arguments: listing);
     } else {
       Navigator.pushNamed(context, ShopDetailView.route, arguments: listing);
@@ -77,7 +74,11 @@ class _GuestHomeViewState extends State<GuestHomeView> {
         actions: [
           TextButton.icon(
             onPressed: () => Navigator.pushNamed(context, '/auth/sign-in'),
-            icon: const Icon(Icons.login_rounded, size: 16, color: AppColors.teal),
+            icon: const Icon(
+              Icons.login_rounded,
+              size: 16,
+              color: AppColors.teal,
+            ),
             label: const Text(
               'Sign In',
               style: TextStyle(
@@ -111,7 +112,9 @@ class _GuestHomeViewState extends State<GuestHomeView> {
                     ],
                   ),
                   borderRadius: BorderRadius.circular(13),
-                  border: Border.all(color: AppColors.teal.withValues(alpha: 0.2)),
+                  border: Border.all(
+                    color: AppColors.teal.withValues(alpha: 0.2),
+                  ),
                 ),
                 child: Row(
                   children: [
@@ -121,7 +124,11 @@ class _GuestHomeViewState extends State<GuestHomeView> {
                         color: Colors.white,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.explore_rounded, color: AppColors.teal, size: 22),
+                      child: const Icon(
+                        Icons.explore_rounded,
+                        color: AppColors.teal,
+                        size: 22,
+                      ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -154,22 +161,16 @@ class _GuestHomeViewState extends State<GuestHomeView> {
 
               // Search Bar
               AppSearchBar(
-                hintText: 'Search services, places & shops...',
+                hintText: 'Search places & shops...',
                 readOnly: true,
-                onTap: () => Navigator.pushNamed(context, SearchResultsView.route),
+                onTap: () =>
+                    Navigator.pushNamed(context, SearchResultsView.route),
               ),
               const SizedBox(height: 16),
 
               // Modules row
               Row(
                 children: [
-                  _buildPillTab(
-                    'Services',
-                    Icons.handyman_rounded,
-                    AppColors.teal,
-                    () => Navigator.pushNamed(context, BrowseServicesView.route),
-                  ),
-                  const SizedBox(width: 8),
                   _buildPillTab(
                     'Places',
                     Icons.account_balance_rounded,
@@ -187,56 +188,54 @@ class _GuestHomeViewState extends State<GuestHomeView> {
               ),
               const SizedBox(height: 20),
 
-              // Services
-              _buildSectionTitle('Verified Services Nearby', AppColors.teal, () {
-                Navigator.pushNamed(
-                  context,
-                  ListingListView.route,
-                  arguments: const {'title': 'Services', 'kind': 'service'},
-                );
-              }),
+              // Places
+              _buildSectionTitle(
+                'Public Amenities & Places',
+                AppColors.indigo,
+                () {
+                  Navigator.pushNamed(context, BrowsePlacesView.route);
+                },
+              ),
               const SizedBox(height: 8),
               if (_isLoading)
-                const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator()))
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(16),
+                    child: CircularProgressIndicator(),
+                  ),
+                )
               else
-                ..._services.map((l) => Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: ListingCard(
-                        listing: l,
-                        distanceLabel: _getDistance(l),
-                        onTap: () => _openDetail(l),
-                      ),
-                    )),
-              const SizedBox(height: 18),
-
-              // Places
-              _buildSectionTitle('Public Amenities & Places', AppColors.indigo, () {
-                Navigator.pushNamed(context, BrowsePlacesView.route);
-              }),
-              const SizedBox(height: 8),
-              ..._places.map((l) => Padding(
+                ..._places.map(
+                  (l) => Padding(
                     padding: const EdgeInsets.only(bottom: 8),
                     child: ListingCard(
                       listing: l,
                       distanceLabel: _getDistance(l),
                       onTap: () => _openDetail(l),
                     ),
-                  )),
+                  ),
+                ),
               const SizedBox(height: 18),
 
               // Shops
-              _buildSectionTitle('Local Stores & Pharmacies', AppColors.amber, () {
-                Navigator.pushNamed(context, BrowseShopsView.route);
-              }),
+              _buildSectionTitle(
+                'Local Stores & Pharmacies',
+                AppColors.amber,
+                () {
+                  Navigator.pushNamed(context, BrowseShopsView.route);
+                },
+              ),
               const SizedBox(height: 8),
-              ..._shops.map((l) => Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: ListingCard(
-                      listing: l,
-                      distanceLabel: _getDistance(l),
-                      onTap: () => _openDetail(l),
-                    ),
-                  )),
+              ..._shops.map(
+                (l) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: ListingCard(
+                    listing: l,
+                    distanceLabel: _getDistance(l),
+                    onTap: () => _openDetail(l),
+                  ),
+                ),
+              ),
               const SizedBox(height: 24),
             ],
           ),
@@ -245,14 +244,21 @@ class _GuestHomeViewState extends State<GuestHomeView> {
     );
   }
 
-  Widget _buildPillTab(String title, IconData icon, Color color, VoidCallback onTap) {
+  Widget _buildPillTab(
+    String title,
+    IconData icon,
+    Color color,
+    VoidCallback onTap,
+  ) {
     return Expanded(
       child: OutlinedButton(
         style: OutlinedButton.styleFrom(
           foregroundColor: color,
           backgroundColor: Colors.white,
           side: BorderSide(color: color.withValues(alpha: 0.3)),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
           padding: const EdgeInsets.symmetric(vertical: 10),
         ),
         onPressed: onTap,

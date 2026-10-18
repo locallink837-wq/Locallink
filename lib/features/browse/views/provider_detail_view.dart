@@ -29,8 +29,23 @@ class _ProviderDetailViewState extends State<ProviderDetailView> {
   List<Review> _reviews = [];
   bool _isLoading = true;
 
-  final double _userLat = Env.defaultLatitude;
-  final double _userLng = Env.defaultLongitude;
+  double _userLat = Env.defaultLatitude;
+  double _userLng = Env.defaultLongitude;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserLocation();
+  }
+
+  Future<void> _loadUserLocation() async {
+    final position = await _locationService.getCurrentPosition();
+    if (!mounted) return;
+    setState(() {
+      _userLat = position.latitude;
+      _userLng = position.longitude;
+    });
+  }
 
   @override
   void didChangeDependencies() {
@@ -53,7 +68,11 @@ class _ProviderDetailViewState extends State<ProviderDetailView> {
   Future<void> _fetchListingById(String id) async {
     final fetched = await _repository.fetchListingById(id);
     if (mounted) {
-      setState(() => _listing = fetched ?? BrowseRepository.demoListings.firstWhere((l) => l.isService));
+      setState(
+        () => _listing =
+            fetched ??
+            BrowseRepository.demoListings.firstWhere((l) => l.isService),
+      );
       _loadReviews();
     }
   }
@@ -90,16 +109,25 @@ class _ProviderDetailViewState extends State<ProviderDetailView> {
               IconButton(
                 tooltip: isSaved ? 'Remove Bookmark' : 'Save Provider',
                 icon: Icon(
-                  isSaved ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
+                  isSaved
+                      ? Icons.bookmark_rounded
+                      : Icons.bookmark_border_rounded,
                   color: isSaved ? AppColors.teal : AppColors.inkLight,
                 ),
-                onPressed: () {
-                  _savedNotifier.toggle(listing.id);
+                onPressed: () async {
+                  final saved = await _savedNotifier.toggle(listing.id);
+                  if (!context.mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       duration: const Duration(seconds: 1),
                       content: Text(
-                        isSaved ? 'Removed from saved places' : 'Saved to your places',
+                        !saved
+                            ? (_savedNotifier.hasAccountSync
+                                  ? 'Could not update saved places. Please try again.'
+                                  : 'Sign in to save places to your account.')
+                            : isSaved
+                            ? 'Removed from saved places'
+                            : 'Saved to your places',
                       ),
                     ),
                   );
@@ -120,7 +148,11 @@ class _ProviderDetailViewState extends State<ProviderDetailView> {
                     value: 'report',
                     child: Row(
                       children: [
-                        Icon(Icons.report_problem_outlined, size: 18, color: AppColors.red),
+                        Icon(
+                          Icons.report_problem_outlined,
+                          size: 18,
+                          color: AppColors.red,
+                        ),
                         SizedBox(width: 8),
                         Text('Report Wrong Info'),
                       ],
@@ -141,7 +173,9 @@ class _ProviderDetailViewState extends State<ProviderDetailView> {
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(AppDecorations.cardRadius),
+                    borderRadius: BorderRadius.circular(
+                      AppDecorations.cardRadius,
+                    ),
                     border: Border.all(color: AppColors.lineLight),
                     boxShadow: const [
                       BoxShadow(
@@ -164,7 +198,11 @@ class _ProviderDetailViewState extends State<ProviderDetailView> {
                               color: AppColors.teal.withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(14),
                             ),
-                            child: const Icon(Icons.handyman_rounded, color: AppColors.teal, size: 28),
+                            child: const Icon(
+                              Icons.handyman_rounded,
+                              color: AppColors.teal,
+                              size: 28,
+                            ),
                           ),
                           const SizedBox(width: 14),
                           Expanded(
@@ -185,7 +223,11 @@ class _ProviderDetailViewState extends State<ProviderDetailView> {
                                     ),
                                     if (listing.verified) ...[
                                       const SizedBox(width: 4),
-                                      const Icon(Icons.verified, color: AppColors.teal, size: 18),
+                                      const Icon(
+                                        Icons.verified,
+                                        color: AppColors.teal,
+                                        size: 18,
+                                      ),
                                     ],
                                   ],
                                 ),
@@ -211,7 +253,10 @@ class _ProviderDetailViewState extends State<ProviderDetailView> {
                       if (listing.highlight.isNotEmpty) ...[
                         const SizedBox(height: 12),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.tealLight,
                             borderRadius: BorderRadius.circular(8),
@@ -237,8 +282,12 @@ class _ProviderDetailViewState extends State<ProviderDetailView> {
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(AppDecorations.cardRadius),
-                    border: Border.all(color: AppColors.teal.withValues(alpha: 0.3)),
+                    borderRadius: BorderRadius.circular(
+                      AppDecorations.cardRadius,
+                    ),
+                    border: Border.all(
+                      color: AppColors.teal.withValues(alpha: 0.3),
+                    ),
                   ),
                   child: Column(
                     children: [
@@ -262,7 +311,11 @@ class _ProviderDetailViewState extends State<ProviderDetailView> {
                       const SizedBox(height: 12),
                       AppButton(
                         label: 'Request Service Now',
-                        icon: const Icon(Icons.bolt, size: 18, color: Colors.white),
+                        icon: const Icon(
+                          Icons.bolt,
+                          size: 18,
+                          color: Colors.white,
+                        ),
                         color: AppColors.teal,
                         onPressed: () {
                           // Route directly to service request flow
@@ -288,7 +341,9 @@ class _ProviderDetailViewState extends State<ProviderDetailView> {
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(AppDecorations.cardRadius),
+                    borderRadius: BorderRadius.circular(
+                      AppDecorations.cardRadius,
+                    ),
                     border: Border.all(color: AppColors.lineLight),
                   ),
                   child: Column(
@@ -320,7 +375,11 @@ class _ProviderDetailViewState extends State<ProviderDetailView> {
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Icon(Icons.place_outlined, size: 18, color: AppColors.muteLight),
+                          const Icon(
+                            Icons.place_outlined,
+                            size: 18,
+                            color: AppColors.muteLight,
+                          ),
                           const SizedBox(width: 6),
                           Expanded(
                             child: Text(
@@ -338,7 +397,11 @@ class _ProviderDetailViewState extends State<ProviderDetailView> {
                         const SizedBox(height: 8),
                         Row(
                           children: [
-                            const Icon(Icons.phone_outlined, size: 16, color: AppColors.muteLight),
+                            const Icon(
+                              Icons.phone_outlined,
+                              size: 16,
+                              color: AppColors.muteLight,
+                            ),
                             const SizedBox(width: 6),
                             Text(
                               listing.phone,
@@ -387,12 +450,18 @@ class _ProviderDetailViewState extends State<ProviderDetailView> {
                       Expanded(
                         child: AppOutlineButton(
                           label: 'Call Direct',
-                          icon: const Icon(Icons.call, size: 16, color: AppColors.teal),
+                          icon: const Icon(
+                            Icons.call,
+                            size: 16,
+                            color: AppColors.teal,
+                          ),
                           color: AppColors.teal,
                           onPressed: () {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text('Calling ${listing.name}: ${listing.phone}'),
+                                content: Text(
+                                  'Calling ${listing.name}: ${listing.phone}',
+                                ),
                                 backgroundColor: AppColors.teal,
                               ),
                             );
@@ -404,12 +473,18 @@ class _ProviderDetailViewState extends State<ProviderDetailView> {
                     Expanded(
                       child: AppOutlineButton(
                         label: 'Directions',
-                        icon: const Icon(Icons.directions, size: 16, color: AppColors.teal),
+                        icon: const Icon(
+                          Icons.directions,
+                          size: 16,
+                          color: AppColors.teal,
+                        ),
                         color: AppColors.teal,
                         onPressed: () {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text('Directions to ${listing.address} ($distanceLabel)'),
+                              content: Text(
+                                'Directions to ${listing.address} ($distanceLabel)',
+                              ),
                             ),
                           );
                         },
@@ -439,7 +514,10 @@ class _ProviderDetailViewState extends State<ProviderDetailView> {
                       ),
                       child: const Text(
                         'View all',
-                        style: TextStyle(fontWeight: FontWeight.w700, color: AppColors.teal),
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.teal,
+                        ),
                       ),
                     ),
                   ],
@@ -449,14 +527,21 @@ class _ProviderDetailViewState extends State<ProviderDetailView> {
                 if (_isLoading)
                   const Center(child: CircularProgressIndicator())
                 else if (_reviews.isEmpty)
-                  const Text('No reviews yet. Be the first to review!', style: TextStyle(color: AppColors.muteLight))
+                  const Text(
+                    'No reviews yet. Be the first to review!',
+                    style: TextStyle(color: AppColors.muteLight),
+                  )
                 else
                   ..._reviews.take(3).map((r) => _buildReviewCard(r)),
 
                 const SizedBox(height: 12),
                 AppOutlineButton(
                   label: 'Write a Review',
-                  icon: const Icon(Icons.rate_review_outlined, size: 16, color: AppColors.teal),
+                  icon: const Icon(
+                    Icons.rate_review_outlined,
+                    size: 16,
+                    color: AppColors.teal,
+                  ),
                   color: AppColors.teal,
                   onPressed: () {
                     WriteReviewSheet.show(

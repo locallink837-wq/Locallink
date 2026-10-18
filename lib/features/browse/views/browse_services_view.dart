@@ -37,8 +37,8 @@ class _BrowseServicesViewState extends State<BrowseServicesView> {
   bool _isLoading = true;
   List<Listing> _services = [];
 
-  final double _userLat = Env.defaultLatitude;
-  final double _userLng = Env.defaultLongitude;
+  double _userLat = Env.defaultLatitude;
+  double _userLng = Env.defaultLongitude;
 
   @override
   void initState() {
@@ -49,7 +49,23 @@ class _BrowseServicesViewState extends State<BrowseServicesView> {
   Future<void> _fetchServices() async {
     setState(() => _isLoading = true);
 
-    final categoryFilter = _selectedCategory == 'All' ? null : _selectedCategory;
+    if (!_repository.hasRealUser) {
+      if (mounted) {
+        setState(() {
+          _services = [];
+          _isLoading = false;
+        });
+      }
+      return;
+    }
+
+    final position = await _locationService.getCurrentPosition();
+    _userLat = position.latitude;
+    _userLng = position.longitude;
+
+    final categoryFilter = _selectedCategory == 'All'
+        ? null
+        : _selectedCategory;
     final results = await _repository.fetchListings(
       kind: 'service',
       category: categoryFilter,
@@ -133,7 +149,10 @@ class _BrowseServicesViewState extends State<BrowseServicesView> {
                   child: Row(
                     children: [
                       FilterChip(
-                        label: const Text('Open Now', style: TextStyle(fontSize: 11)),
+                        label: const Text(
+                          'Open Now',
+                          style: TextStyle(fontSize: 11),
+                        ),
                         selected: _openNowOnly,
                         selectedColor: AppColors.teal.withValues(alpha: 0.15),
                         checkmarkColor: AppColors.teal,
@@ -144,7 +163,10 @@ class _BrowseServicesViewState extends State<BrowseServicesView> {
                       ),
                       const SizedBox(width: 8),
                       FilterChip(
-                        label: const Text('Verified Only', style: TextStyle(fontSize: 11)),
+                        label: const Text(
+                          'Verified Only',
+                          style: TextStyle(fontSize: 11),
+                        ),
                         selected: _verifiedOnly,
                         selectedColor: AppColors.teal.withValues(alpha: 0.15),
                         checkmarkColor: AppColors.teal,
@@ -163,45 +185,56 @@ class _BrowseServicesViewState extends State<BrowseServicesView> {
 
           // Listings List
           Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator(color: AppColors.teal))
+            child: !_repository.hasRealUser
+                ? EmptyState(
+                    title: 'Sign in to browse services',
+                    message: 'Verified service listings are available to signed-in customers.',
+                    icon: Icons.lock_outline_rounded,
+                    actionLabel: 'Sign In',
+                    onAction: () =>
+                        Navigator.pushNamed(context, '/auth/sign-in'),
+                  )
+                : _isLoading
+                ? const Center(
+                    child: CircularProgressIndicator(color: AppColors.teal),
+                  )
                 : _filteredServices.isEmpty
-                    ? EmptyState(
-                        title: 'No services found',
-                        message: 'Try clearing your filters or search terms to find more providers.',
-                        icon: Icons.handyman_outlined,
-                        actionLabel: 'Reset Filters',
-                        onAction: () {
-                          setState(() {
-                            _selectedCategory = 'All';
-                            _verifiedOnly = false;
-                            _openNowOnly = false;
-                            _searchQuery = '';
-                          });
-                          _fetchServices();
-                        },
-                      )
-                    : RefreshIndicator(
-                        onRefresh: _fetchServices,
-                        color: AppColors.teal,
-                        child: ListView.separated(
-                          padding: const EdgeInsets.all(16),
-                          itemCount: _filteredServices.length,
-                          separatorBuilder: (_, _) => const SizedBox(height: 8),
-                          itemBuilder: (context, index) {
-                            final listing = _filteredServices[index];
-                            return ListingCard(
-                              listing: listing,
-                              distanceLabel: _getDistance(listing),
-                              onTap: () => Navigator.pushNamed(
-                                context,
-                                ProviderDetailView.route,
-                                arguments: listing,
-                              ),
-                            );
-                          },
-                        ),
-                      ),
+                ? EmptyState(
+                    title: 'No services found',
+                    message: 'Try clearing your filters or search terms to find more providers.',
+                    icon: Icons.handyman_outlined,
+                    actionLabel: 'Reset Filters',
+                    onAction: () {
+                      setState(() {
+                        _selectedCategory = 'All';
+                        _verifiedOnly = false;
+                        _openNowOnly = false;
+                        _searchQuery = '';
+                      });
+                      _fetchServices();
+                    },
+                  )
+                : RefreshIndicator(
+                    onRefresh: _fetchServices,
+                    color: AppColors.teal,
+                    child: ListView.separated(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: _filteredServices.length,
+                      separatorBuilder: (_, _) => const SizedBox(height: 8),
+                      itemBuilder: (context, index) {
+                        final listing = _filteredServices[index];
+                        return ListingCard(
+                          listing: listing,
+                          distanceLabel: _getDistance(listing),
+                          onTap: () => Navigator.pushNamed(
+                            context,
+                            ProviderDetailView.route,
+                            arguments: listing,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
           ),
         ],
       ),
