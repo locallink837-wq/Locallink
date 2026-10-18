@@ -29,8 +29,8 @@ class _SearchResultsViewState extends State<SearchResultsView> {
   List<Listing> _allListings = [];
   List<Listing> _results = [];
 
-  final double _userLat = Env.defaultLatitude;
-  final double _userLng = Env.defaultLongitude;
+  double _userLat = Env.defaultLatitude;
+  double _userLng = Env.defaultLongitude;
 
   final List<String> _suggestedTags = [
     'Electrician',
@@ -57,6 +57,9 @@ class _SearchResultsViewState extends State<SearchResultsView> {
 
   Future<void> _loadListings() async {
     setState(() => _isLoading = true);
+    final position = await _locationService.getCurrentPosition();
+    _userLat = position.latitude;
+    _userLng = position.longitude;
     final list = await _repository.fetchListings();
     if (mounted) {
       setState(() {
@@ -82,7 +85,11 @@ class _SearchResultsViewState extends State<SearchResultsView> {
         final matchAddr = l.address.toLowerCase().contains(q);
         final matchTags = l.tags.any((t) => t.toLowerCase().contains(q));
         final matchHighlight = l.highlight.toLowerCase().contains(q);
-        return matchName || matchCat || matchAddr || matchTags || matchHighlight;
+        return matchName ||
+            matchCat ||
+            matchAddr ||
+            matchTags ||
+            matchHighlight;
       }).toList();
     }
 
@@ -97,7 +104,11 @@ class _SearchResultsViewState extends State<SearchResultsView> {
 
   void _openDetail(Listing listing) {
     if (listing.isService) {
-      Navigator.pushNamed(context, ProviderDetailView.route, arguments: listing);
+      Navigator.pushNamed(
+        context,
+        ProviderDetailView.route,
+        arguments: listing,
+      );
     } else if (listing.isPlace) {
       Navigator.pushNamed(context, PlaceDetailView.route, arguments: listing);
     } else {
@@ -132,7 +143,10 @@ class _SearchResultsViewState extends State<SearchResultsView> {
                       },
                     )
                   : null,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 8,
+              ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
                 borderSide: BorderSide.none,
@@ -226,30 +240,31 @@ class _SearchResultsViewState extends State<SearchResultsView> {
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : _results.isEmpty
-                    ? EmptyState(
-                        title: 'No matches found',
-                        message: 'We couldn\'t find any listings matching "$_searchQuery".',
-                        icon: Icons.search_off_rounded,
-                        actionLabel: 'Clear Search',
-                        onAction: () {
-                          _controller.clear();
-                          setState(() => _searchQuery = '');
-                          _performFilter();
-                        },
-                      )
-                    : ListView.separated(
-                        padding: const EdgeInsets.all(16),
-                        itemCount: _results.length,
-                        separatorBuilder: (_, _) => const SizedBox(height: 8),
-                        itemBuilder: (context, index) {
-                          final listing = _results[index];
-                          return ListingCard(
-                            listing: listing,
-                            distanceLabel: _getDistance(listing),
-                            onTap: () => _openDetail(listing),
-                          );
-                        },
-                      ),
+                ? EmptyState(
+                    title: 'No matches found',
+                    message:
+                        'We couldn\'t find any listings matching "$_searchQuery".',
+                    icon: Icons.search_off_rounded,
+                    actionLabel: 'Clear Search',
+                    onAction: () {
+                      _controller.clear();
+                      setState(() => _searchQuery = '');
+                      _performFilter();
+                    },
+                  )
+                : ListView.separated(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: _results.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 8),
+                    itemBuilder: (context, index) {
+                      final listing = _results[index];
+                      return ListingCard(
+                        listing: listing,
+                        distanceLabel: _getDistance(listing),
+                        onTap: () => _openDetail(listing),
+                      );
+                    },
+                  ),
           ),
         ],
       ),
@@ -267,9 +282,7 @@ class _SearchResultsViewState extends State<SearchResultsView> {
         fontWeight: FontWeight.w700,
         color: isSelected ? color : AppColors.inkLight,
       ),
-      side: BorderSide(
-        color: isSelected ? color : AppColors.inputBorderLight,
-      ),
+      side: BorderSide(color: isSelected ? color : AppColors.inputBorderLight),
       onSelected: (_) {
         setState(() => _selectedKind = kind);
         _performFilter();

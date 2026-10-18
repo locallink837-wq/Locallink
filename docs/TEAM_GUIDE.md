@@ -42,4 +42,4 @@ run `flutter analyze`, then `git add .` and `git commit`. Stuck? `git merge --ab
 flutter pub get
 flutter run --dart-define-from-file=env/dev.json
 ```
-The app opens on the screen launcher (/dev) so you can open any screen. Set `Env.startWithDevMenu = false` in lib/core/config/env.dart for the real flow.
+Debug/profile builds open the screen launcher (/dev) by default. Release builds enter the real app flow; use `--dart-define=START_WITH_DEV_MENU=true` to force the launcher.

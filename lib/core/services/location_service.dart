@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 
@@ -10,12 +11,14 @@ import '../models/listing.dart';
 /// and list sorting by distance with verified-first priority.
 class LocationService {
   const LocationService();
+  static bool _permissionRequestAttempted = false;
 
   /// Check if location permissions are currently granted
   Future<bool> hasPermission() async {
     try {
       final status = await Geolocator.checkPermission();
-      return status == LocationPermission.always || status == LocationPermission.whileInUse;
+      return status == LocationPermission.always ||
+          status == LocationPermission.whileInUse;
     } catch (e) {
       debugPrint('Error checking location permission: $e');
       return false;
@@ -29,6 +32,7 @@ class LocationService {
       if (!serviceEnabled) {
         debugPrint('Location services are disabled on device.');
       }
+      _permissionRequestAttempted = true;
       return await Geolocator.requestPermission();
     } catch (e) {
       debugPrint('Error requesting location permission: $e');
@@ -46,7 +50,10 @@ class LocationService {
 
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
+        if (!_permissionRequestAttempted) {
+          _permissionRequestAttempted = true;
+          permission = await Geolocator.requestPermission();
+        }
         if (permission == LocationPermission.denied ||
             permission == LocationPermission.deniedForever) {
           return _fallbackPosition();
@@ -109,7 +116,8 @@ class LocationService {
     const r = 6371000.0; // Earth radius in meters
     final dLat = (lat2 - lat1) * math.pi / 180.0;
     final dLon = (lon2 - lon1) * math.pi / 180.0;
-    final a = math.sin(dLat / 2) * math.sin(dLat / 2) +
+    final a =
+        math.sin(dLat / 2) * math.sin(dLat / 2) +
         math.cos(lat1 * math.pi / 180.0) *
             math.cos(lat2 * math.pi / 180.0) *
             math.sin(dLon / 2) *

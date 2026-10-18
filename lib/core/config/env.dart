@@ -1,10 +1,15 @@
 class Env {
-  /// true = app opens on the screen launcher (/dev). Set false for real production flow.
-  static const bool startWithDevMenu = true;
+  /// Override with --dart-define=START_WITH_DEV_MENU=true when needed.
+  static const bool startWithDevMenu = bool.fromEnvironment(
+    'START_WITH_DEV_MENU',
+    defaultValue: !bool.fromEnvironment('dart.vm.product'),
+  );
 
   // Safe to ship in the app. Real values come from --dart-define-from-file=env/dev.json
   static const String supabaseUrl = String.fromEnvironment('SUPABASE_URL');
-  static const String supabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY');
+  static const String supabaseAnonKey = String.fromEnvironment(
+    'SUPABASE_ANON_KEY',
+  );
 
   // Emergency SOS Dispatch Hotline
   static const String emergencyPhone = '112';

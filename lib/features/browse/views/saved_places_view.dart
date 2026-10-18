@@ -28,8 +28,8 @@ class _SavedPlacesViewState extends State<SavedPlacesView> {
   List<Listing> _savedListings = [];
   bool _isLoading = true;
 
-  final double _userLat = Env.defaultLatitude;
-  final double _userLng = Env.defaultLongitude;
+  double _userLat = Env.defaultLatitude;
+  double _userLng = Env.defaultLongitude;
 
   @override
   void initState() {
@@ -45,6 +45,9 @@ class _SavedPlacesViewState extends State<SavedPlacesView> {
   }
 
   Future<void> _loadSaved() async {
+    final position = await _locationService.getCurrentPosition();
+    _userLat = position.latitude;
+    _userLng = position.longitude;
     final ids = _savedNotifier.savedIds;
     final listings = await _repository.fetchSavedListings(ids);
 
@@ -67,7 +70,11 @@ class _SavedPlacesViewState extends State<SavedPlacesView> {
 
   void _openDetail(Listing listing) {
     if (listing.isService) {
-      Navigator.pushNamed(context, ProviderDetailView.route, arguments: listing);
+      Navigator.pushNamed(
+        context,
+        ProviderDetailView.route,
+        arguments: listing,
+      );
     } else if (listing.isPlace) {
       Navigator.pushNamed(context, PlaceDetailView.route, arguments: listing);
     } else {
@@ -78,9 +85,7 @@ class _SavedPlacesViewState extends State<SavedPlacesView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Saved Places'),
-      ),
+      appBar: AppBar(title: const Text('Saved Places')),
       body: Column(
         children: [
           // Filter Tabs
@@ -91,7 +96,11 @@ class _SavedPlacesViewState extends State<SavedPlacesView> {
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
-                  _buildKindChip('all', 'All (${_savedListings.length})', AppColors.inkLight),
+                  _buildKindChip(
+                    'all',
+                    'All (${_savedListings.length})',
+                    AppColors.inkLight,
+                  ),
                   const SizedBox(width: 6),
                   _buildKindChip(
                     'service',
@@ -121,45 +130,59 @@ class _SavedPlacesViewState extends State<SavedPlacesView> {
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : _displayListings.isEmpty
-                    ? EmptyState(
-                        title: 'No saved places yet',
-                        message: 'Tap the bookmark icon on any shop, service, or landmark to save it here for fast access.',
-                        icon: Icons.bookmark_border_rounded,
-                        actionLabel: 'Explore Nearby',
-                        onAction: () => Navigator.pop(context),
-                      )
-                    : ListView.separated(
-                        padding: const EdgeInsets.all(16),
-                        itemCount: _displayListings.length,
-                        separatorBuilder: (_, _) => const SizedBox(height: 8),
-                        itemBuilder: (context, index) {
-                          final listing = _displayListings[index];
-                          return Dismissible(
-                            key: ValueKey(listing.id),
-                            direction: DismissDirection.endToStart,
-                            background: Container(
-                              alignment: Alignment.centerRight,
-                              padding: const EdgeInsets.only(right: 20),
-                              decoration: BoxDecoration(
-                                color: AppColors.red,
-                                borderRadius: BorderRadius.circular(13),
+                ? EmptyState(
+                    title: 'No saved places yet',
+                    message: _savedNotifier.hasAccountSync
+                        ? 'Tap the bookmark icon on a listing to save it here for fast access.'
+                        : 'Sign in to save listings to your account for fast access.',
+                    icon: Icons.bookmark_border_rounded,
+                    actionLabel: 'Explore Nearby',
+                    onAction: () => Navigator.pop(context),
+                  )
+                : ListView.separated(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: _displayListings.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 8),
+                    itemBuilder: (context, index) {
+                      final listing = _displayListings[index];
+                      return Dismissible(
+                        key: ValueKey(listing.id),
+                        direction: DismissDirection.endToStart,
+                        background: Container(
+                          alignment: Alignment.centerRight,
+                          padding: const EdgeInsets.only(right: 20),
+                          decoration: BoxDecoration(
+                            color: AppColors.red,
+                            borderRadius: BorderRadius.circular(13),
+                          ),
+                          child: const Icon(
+                            Icons.delete_outline,
+                            color: Colors.white,
+                          ),
+                        ),
+                        onDismissed: (_) async {
+                          final removed = await _savedNotifier.remove(
+                            listing.id,
+                          );
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                removed
+                                    ? 'Removed ${listing.name} from saved places'
+                                    : 'Could not update saved places. Please try again.',
                               ),
-                              child: const Icon(Icons.delete_outline, color: Colors.white),
-                            ),
-                            onDismissed: (_) {
-                              _savedNotifier.remove(listing.id);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Removed ${listing.name} from saved places')),
-                              );
-                            },
-                            child: ListingCard(
-                              listing: listing,
-                              distanceLabel: _getDistance(listing),
-                              onTap: () => _openDetail(listing),
                             ),
                           );
                         },
-                      ),
+                        child: ListingCard(
+                          listing: listing,
+                          distanceLabel: _getDistance(listing),
+                          onTap: () => _openDetail(listing),
+                        ),
+                      );
+                    },
+                  ),
           ),
         ],
       ),
@@ -177,9 +200,7 @@ class _SavedPlacesViewState extends State<SavedPlacesView> {
         fontWeight: FontWeight.w700,
         color: isSelected ? color : AppColors.inkLight,
       ),
-      side: BorderSide(
-        color: isSelected ? color : AppColors.inputBorderLight,
-      ),
+      side: BorderSide(color: isSelected ? color : AppColors.inputBorderLight),
       onSelected: (_) => setState(() => _filterKind = kind),
     );
   }

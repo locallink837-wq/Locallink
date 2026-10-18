@@ -71,7 +71,6 @@ class _WriteReviewSheetState extends State<WriteReviewSheet> {
         rating: _rating,
         comment: comment,
         authorName: _nameController.text.trim(),
-        authorId: 'usr_${DateTime.now().millisecondsSinceEpoch}',
       );
 
       if (mounted) {
@@ -87,9 +86,9 @@ class _WriteReviewSheetState extends State<WriteReviewSheet> {
     } catch (e) {
       if (mounted) {
         setState(() => _isSubmitting = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to submit review: $e')),
-        );
+        final message = e.toString().replaceFirst('Bad state: ', '');
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(message)));
       }
     }
   }
@@ -150,7 +149,9 @@ class _WriteReviewSheetState extends State<WriteReviewSheet> {
                     iconSize: 36,
                     padding: const EdgeInsets.symmetric(horizontal: 4),
                     icon: Icon(
-                      isFilled ? Icons.star_rounded : Icons.star_outline_rounded,
+                      isFilled
+                          ? Icons.star_rounded
+                          : Icons.star_outline_rounded,
                       color: isFilled ? AppColors.star : AppColors.lineLight,
                     ),
                     onPressed: () => setState(() => _rating = starValue),

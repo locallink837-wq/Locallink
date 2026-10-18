@@ -29,8 +29,23 @@ class _ShopDetailViewState extends State<ShopDetailView> {
   List<Review> _reviews = [];
   bool _isLoading = true;
 
-  final double _userLat = Env.defaultLatitude;
-  final double _userLng = Env.defaultLongitude;
+  double _userLat = Env.defaultLatitude;
+  double _userLng = Env.defaultLongitude;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserLocation();
+  }
+
+  Future<void> _loadUserLocation() async {
+    final position = await _locationService.getCurrentPosition();
+    if (!mounted) return;
+    setState(() {
+      _userLat = position.latitude;
+      _userLng = position.longitude;
+    });
+  }
 
   @override
   void didChangeDependencies() {
@@ -53,7 +68,11 @@ class _ShopDetailViewState extends State<ShopDetailView> {
   Future<void> _fetchListingById(String id) async {
     final fetched = await _repository.fetchListingById(id);
     if (mounted) {
-      setState(() => _listing = fetched ?? BrowseRepository.demoListings.firstWhere((l) => l.isShop));
+      setState(
+        () => _listing =
+            fetched ??
+            BrowseRepository.demoListings.firstWhere((l) => l.isShop),
+      );
       _loadReviews();
     }
   }
@@ -71,7 +90,16 @@ class _ShopDetailViewState extends State<ShopDetailView> {
 
   String _formatWeeklyOff(List<int> weeklyOff) {
     if (weeklyOff.isEmpty) return 'Open all days of the week';
-    const dayNames = ['', 'Mondays', 'Tuesdays', 'Wednesdays', 'Thursdays', 'Fridays', 'Saturdays', 'Sundays'];
+    const dayNames = [
+      '',
+      'Mondays',
+      'Tuesdays',
+      'Wednesdays',
+      'Thursdays',
+      'Fridays',
+      'Saturdays',
+      'Sundays',
+    ];
     final names = weeklyOff.map((d) => dayNames[d]).join(', ');
     return 'Closed on $names';
   }
@@ -97,16 +125,25 @@ class _ShopDetailViewState extends State<ShopDetailView> {
               IconButton(
                 tooltip: isSaved ? 'Remove Bookmark' : 'Save Shop',
                 icon: Icon(
-                  isSaved ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
+                  isSaved
+                      ? Icons.bookmark_rounded
+                      : Icons.bookmark_border_rounded,
                   color: isSaved ? AppColors.amber : AppColors.inkLight,
                 ),
-                onPressed: () {
-                  _savedNotifier.toggle(listing.id);
+                onPressed: () async {
+                  final saved = await _savedNotifier.toggle(listing.id);
+                  if (!context.mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       duration: const Duration(seconds: 1),
                       content: Text(
-                        isSaved ? 'Removed from saved places' : 'Saved to your places',
+                        !saved
+                            ? (_savedNotifier.hasAccountSync
+                                  ? 'Could not update saved places. Please try again.'
+                                  : 'Sign in to save places to your account.')
+                            : isSaved
+                            ? 'Removed from saved places'
+                            : 'Saved to your places',
                       ),
                     ),
                   );
@@ -127,7 +164,11 @@ class _ShopDetailViewState extends State<ShopDetailView> {
                     value: 'report',
                     child: Row(
                       children: [
-                        Icon(Icons.report_problem_outlined, size: 18, color: AppColors.red),
+                        Icon(
+                          Icons.report_problem_outlined,
+                          size: 18,
+                          color: AppColors.red,
+                        ),
                         SizedBox(width: 8),
                         Text('Report Wrong Info'),
                       ],
@@ -148,7 +189,9 @@ class _ShopDetailViewState extends State<ShopDetailView> {
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(AppDecorations.cardRadius),
+                    borderRadius: BorderRadius.circular(
+                      AppDecorations.cardRadius,
+                    ),
                     border: Border.all(color: AppColors.lineLight),
                     boxShadow: const [
                       BoxShadow(
@@ -171,7 +214,11 @@ class _ShopDetailViewState extends State<ShopDetailView> {
                               color: AppColors.amber.withValues(alpha: 0.14),
                               borderRadius: BorderRadius.circular(14),
                             ),
-                            child: const Icon(Icons.storefront_rounded, color: AppColors.amber, size: 28),
+                            child: const Icon(
+                              Icons.storefront_rounded,
+                              color: AppColors.amber,
+                              size: 28,
+                            ),
                           ),
                           const SizedBox(width: 14),
                           Expanded(
@@ -192,7 +239,11 @@ class _ShopDetailViewState extends State<ShopDetailView> {
                                     ),
                                     if (listing.verified) ...[
                                       const SizedBox(width: 4),
-                                      const Icon(Icons.verified, color: AppColors.teal, size: 18),
+                                      const Icon(
+                                        Icons.verified,
+                                        color: AppColors.teal,
+                                        size: 18,
+                                      ),
                                     ],
                                   ],
                                 ),
@@ -218,7 +269,10 @@ class _ShopDetailViewState extends State<ShopDetailView> {
                       if (listing.highlight.isNotEmpty) ...[
                         const SizedBox(height: 12),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.amberLight,
                             borderRadius: BorderRadius.circular(8),
@@ -244,7 +298,9 @@ class _ShopDetailViewState extends State<ShopDetailView> {
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(AppDecorations.cardRadius),
+                    borderRadius: BorderRadius.circular(
+                      AppDecorations.cardRadius,
+                    ),
                     border: Border.all(color: AppColors.lineLight),
                   ),
                   child: Column(
@@ -270,7 +326,11 @@ class _ShopDetailViewState extends State<ShopDetailView> {
                       const SizedBox(height: 8),
                       Row(
                         children: [
-                          const Icon(Icons.schedule, size: 16, color: AppColors.muteLight),
+                          const Icon(
+                            Icons.schedule,
+                            size: 16,
+                            color: AppColors.muteLight,
+                          ),
                           const SizedBox(width: 6),
                           Text(
                             listing.open24x7
@@ -287,7 +347,11 @@ class _ShopDetailViewState extends State<ShopDetailView> {
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          const Icon(Icons.event_busy, size: 16, color: AppColors.muteLight),
+                          const Icon(
+                            Icons.event_busy,
+                            size: 16,
+                            color: AppColors.muteLight,
+                          ),
                           const SizedBox(width: 6),
                           Text(
                             _formatWeeklyOff(listing.weeklyOff),
@@ -309,7 +373,9 @@ class _ShopDetailViewState extends State<ShopDetailView> {
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(AppDecorations.cardRadius),
+                    borderRadius: BorderRadius.circular(
+                      AppDecorations.cardRadius,
+                    ),
                     border: Border.all(color: AppColors.lineLight),
                   ),
                   child: Column(
@@ -341,7 +407,11 @@ class _ShopDetailViewState extends State<ShopDetailView> {
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Icon(Icons.place_outlined, size: 18, color: AppColors.muteLight),
+                          const Icon(
+                            Icons.place_outlined,
+                            size: 18,
+                            color: AppColors.muteLight,
+                          ),
                           const SizedBox(width: 6),
                           Expanded(
                             child: Text(
@@ -359,7 +429,11 @@ class _ShopDetailViewState extends State<ShopDetailView> {
                         const SizedBox(height: 8),
                         Row(
                           children: [
-                            const Icon(Icons.phone_outlined, size: 16, color: AppColors.muteLight),
+                            const Icon(
+                              Icons.phone_outlined,
+                              size: 16,
+                              color: AppColors.muteLight,
+                            ),
                             const SizedBox(width: 6),
                             Text(
                               listing.phone,
@@ -407,12 +481,18 @@ class _ShopDetailViewState extends State<ShopDetailView> {
                     Expanded(
                       child: AppButton(
                         label: 'Call Store',
-                        icon: const Icon(Icons.call, size: 16, color: Colors.white),
+                        icon: const Icon(
+                          Icons.call,
+                          size: 16,
+                          color: Colors.white,
+                        ),
                         color: AppColors.amber,
                         onPressed: () {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text('Calling ${listing.name}: ${listing.phone}'),
+                              content: Text(
+                                'Calling ${listing.name}: ${listing.phone}',
+                              ),
                               backgroundColor: AppColors.amber,
                             ),
                           );
@@ -423,12 +503,18 @@ class _ShopDetailViewState extends State<ShopDetailView> {
                     Expanded(
                       child: AppOutlineButton(
                         label: 'Directions',
-                        icon: const Icon(Icons.directions, size: 16, color: AppColors.amber),
+                        icon: const Icon(
+                          Icons.directions,
+                          size: 16,
+                          color: AppColors.amber,
+                        ),
                         color: AppColors.amber,
                         onPressed: () {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text('Directions to ${listing.address} ($distanceLabel)'),
+                              content: Text(
+                                'Directions to ${listing.address} ($distanceLabel)',
+                              ),
                             ),
                           );
                         },
@@ -458,7 +544,10 @@ class _ShopDetailViewState extends State<ShopDetailView> {
                       ),
                       child: const Text(
                         'View all',
-                        style: TextStyle(fontWeight: FontWeight.w700, color: AppColors.amber),
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.amber,
+                        ),
                       ),
                     ),
                   ],
@@ -468,14 +557,21 @@ class _ShopDetailViewState extends State<ShopDetailView> {
                 if (_isLoading)
                   const Center(child: CircularProgressIndicator())
                 else if (_reviews.isEmpty)
-                  const Text('No reviews yet. Be the first to review!', style: TextStyle(color: AppColors.muteLight))
+                  const Text(
+                    'No reviews yet. Be the first to review!',
+                    style: TextStyle(color: AppColors.muteLight),
+                  )
                 else
                   ..._reviews.take(3).map((r) => _buildReviewCard(r)),
 
                 const SizedBox(height: 12),
                 AppOutlineButton(
                   label: 'Write a Review',
-                  icon: const Icon(Icons.rate_review_outlined, size: 16, color: AppColors.amber),
+                  icon: const Icon(
+                    Icons.rate_review_outlined,
+                    size: 16,
+                    color: AppColors.amber,
+                  ),
                   color: AppColors.amber,
                   onPressed: () {
                     WriteReviewSheet.show(
