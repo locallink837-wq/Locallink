@@ -17,6 +17,8 @@ export 'models/chat_message.dart';
 export 'models/lead.dart';
 export 'models/listing.dart';
 export 'models/review.dart';
+export 'models/ai_session.dart';
+export 'models/relocation_plan.dart';
 export 'models/service_request.dart';
 export 'models/wallet.dart';
 
