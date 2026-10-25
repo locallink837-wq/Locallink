@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 
-/// AI unavailable
-/// Module 4 - AI assistant and New to City  |  Owner: A
-/// Replace the body below with your real UI. Keep the class name and route.
+import '../../../core/widgets/ui_kit.dart';
+
+/// Screen 4.5: AI Service Unavailable Fallback.
+/// Graceful fallback state providing manual category selection without interrupting the customer's repair request.
 class AiUnavailableView extends StatelessWidget {
   const AiUnavailableView({super.key});
 
@@ -10,9 +11,25 @@ class AiUnavailableView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('AI unavailable')),
-      body: const Center(child: Text('TODO: AI unavailable')),
+    return Theme(
+      data: uiFeatureTheme(context, UiColors.teal),
+      child: UiCoverScreen(
+        customAccent: UiColors.teal,
+        icon: Icons.cloud_off_rounded,
+        title: 'AI Analysis Unavailable',
+        subtitle:
+            'We could not reach Gemini AI at this moment. You can still select your service trade manually and request verified providers nearby.',
+        primaryButtonText: 'Choose Service Manually',
+        onPrimaryPressed: () {
+          Navigator.pushReplacementNamed(
+            context,
+            '/requests/request-form',
+            arguments: {'category': 'Plumber'},
+          );
+        },
+        secondaryButtonText: 'Back to Assistant Hub',
+        onSecondaryPressed: () => Navigator.of(context).pop(),
+      ),
     );
   }
 }

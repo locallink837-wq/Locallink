@@ -10,6 +10,7 @@ class Env {
   static const String supabaseAnonKey = String.fromEnvironment(
     'SUPABASE_ANON_KEY',
   );
+  static const String geminiApiKey = String.fromEnvironment('GEMINI_API_KEY');
 
   // Emergency SOS Dispatch Hotline
   static const String emergencyPhone = '112';
