@@ -1,8 +1,9 @@
 class Env {
-  /// Override with --dart-define=START_WITH_DEV_MENU=true when needed.
+  /// Set to true with --dart-define=START_WITH_DEV_MENU=true to open the screen launcher.
+  /// Default is false so `flutter run` enters the real app flow (Splash > Intro > Login).
   static const bool startWithDevMenu = bool.fromEnvironment(
     'START_WITH_DEV_MENU',
-    defaultValue: !bool.fromEnvironment('dart.vm.product'),
+    defaultValue: false,
   );
 
   // Safe to ship in the app. Real values come from --dart-define-from-file=env/dev.json

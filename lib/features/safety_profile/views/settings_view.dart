@@ -209,6 +209,14 @@ class _SettingsViewState extends State<SettingsView> {
               ),
 
               UiListTile(
+                title: 'Developer Screen Launcher',
+                subtitle: 'Direct access to all 80+ screens for demo',
+                icon: Icons.developer_mode_rounded,
+                customAccent: UiColors.indigo,
+                onTap: () => Navigator.pushNamed(context, '/dev'),
+              ),
+
+              UiListTile(
                 title: 'Log out',
                 subtitle: 'Sign out of current account',
                 icon: Icons.logout_rounded,
