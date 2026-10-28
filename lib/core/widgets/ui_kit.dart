@@ -573,23 +573,32 @@ class UiListTile extends StatelessWidget {
 class UiUploadCard extends StatelessWidget {
   final String label;
   final File? pickedFile;
+  final Uint8List? pickedBytes;
   final String? existingUrl;
+  final String? imageUrl;
   final VoidCallback onTap;
+  final ValueChanged<String>? onUrlEntered;
   final IconData icon;
 
   const UiUploadCard({
     super.key,
     required this.label,
     this.pickedFile,
+    this.pickedBytes,
     this.existingUrl,
+    this.imageUrl,
     required this.onTap,
+    this.onUrlEntered,
     this.icon = Icons.camera_alt_outlined,
   });
 
   @override
   Widget build(BuildContext context) {
     final accent = Theme.of(context).colorScheme.primary;
-    final hasImage = pickedFile != null || (existingUrl != null && existingUrl!.isNotEmpty);
+    final effectiveUrl = imageUrl ?? existingUrl;
+    final hasImage = (effectiveUrl != null && effectiveUrl.isNotEmpty) ||
+        pickedBytes != null ||
+        pickedFile != null;
 
     return GestureDetector(
       onTap: onTap,
@@ -614,20 +623,42 @@ class UiUploadCard extends StatelessWidget {
         child: Stack(
           alignment: Alignment.center,
           children: [
-            if (pickedFile != null)
+            if (effectiveUrl != null && effectiveUrl.isNotEmpty)
               Positioned.fill(
-                child: Image.file(
-                  pickedFile!,
+                child: Image.network(
+                  effectiveUrl,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    color: Colors.grey.shade200,
+                    child: const Icon(Icons.broken_image_rounded, color: Colors.grey),
+                  ),
+                ),
+              )
+            else if (pickedBytes != null)
+              Positioned.fill(
+                child: Image.memory(
+                  pickedBytes!,
                   fit: BoxFit.cover,
                 ),
               )
-            else if (existingUrl != null && existingUrl!.isNotEmpty)
+            else if (pickedFile != null)
               Positioned.fill(
-                child: Image.network(
-                  existingUrl!,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => const SizedBox(),
-                ),
+                child: kIsWeb
+                    ? Image.network(
+                        pickedFile!.path,
+                        fit: BoxFit.cover,
+                        errorBuilder: (c, e, s) => const SizedBox(),
+                      )
+                    : Image.file(
+                        pickedFile!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) =>
+                            Image.network(
+                          pickedFile!.path,
+                          fit: BoxFit.cover,
+                          errorBuilder: (c, e, s) => const SizedBox(),
+                        ),
+                      ),
               ),
             if (!hasImage)
               Column(
@@ -887,6 +918,8 @@ class UiCoverScreen extends StatelessWidget {
   final String? secondaryButtonText;
   final VoidCallback? onSecondaryPressed;
   final Color? customAccent;
+  final bool showBackButton;
+  final VoidCallback? onBack;
 
   const UiCoverScreen({
     super.key,
@@ -898,6 +931,8 @@ class UiCoverScreen extends StatelessWidget {
     this.secondaryButtonText,
     this.onSecondaryPressed,
     this.customAccent,
+    this.showBackButton = true,
+    this.onBack,
   });
 
   @override
@@ -922,6 +957,28 @@ class UiCoverScreen extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                if (showBackButton)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: GestureDetector(
+                      onTap: onBack ?? () {
+                        if (Navigator.of(context).canPop()) {
+                          Navigator.of(context).pop();
+                        } else {
+                          Navigator.of(context).pushNamedAndRemoveUntil('/shell/customer', (r) => false);
+                        }
+                      },
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.22),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 22),
+                      ),
+                    ),
+                  ),
                 const Spacer(),
                 Container(
                   width: 84,

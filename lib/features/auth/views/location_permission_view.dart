@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:localink/features/auth/widgets/auth_widgets.dart';
 
+import '../../../core/services/location_service.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../data/auth_repository.dart';
 import '../state/auth_flow.dart';
@@ -36,6 +37,9 @@ class _LocationPermissionViewState extends State<LocationPermissionView> {
       if (loc == null) {
         _snack('Location was not allowed. You can enter your area manually.');
         return;
+      }
+      if (loc.area.isNotEmpty) {
+        LocationService.lastKnownArea = loc.area;
       }
       final uid = _repo.currentUid;
       if (_repo.isRealUser && uid != null) {

@@ -1,9 +1,11 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../core/constants/enums.dart';
+import '../../../core/services/location_service.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../data/requests_repository.dart';
 import 'finding_providers_view.dart';
@@ -21,15 +23,25 @@ class RequestFormView extends StatefulWidget {
 
 class _RequestFormViewState extends State<RequestFormView> {
   final _descController = TextEditingController();
-  final _addressController = TextEditingController(text: 'Kothrud, Pune');
+  late final TextEditingController _addressController;
   final _repo = RequestsRepository();
   final _picker = ImagePicker();
 
   String _category = 'Plumber';
   Urgency _urgency = Urgency.now;
   File? _pickedPhoto;
+  Uint8List? _photoBytes;
+  String? _photoUrl;
   bool _isSubmitting = false;
   String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _addressController = TextEditingController(
+      text: LocationService.lastKnownArea ?? 'Shivajinagar, Pune',
+    );
+  }
 
   @override
   void didChangeDependencies() {
@@ -55,9 +67,42 @@ class _RequestFormViewState extends State<RequestFormView> {
         imageQuality: 70,
       );
       if (picked != null) {
-        setState(() => _pickedPhoto = File(picked.path));
+        final bytes = await picked.readAsBytes();
+        setState(() {
+          _photoBytes = bytes;
+          _photoUrl = null;
+          _pickedPhoto = File(picked.path);
+        });
       }
     } catch (_) {}
+  }
+
+  void _enterImageUrl() async {
+    final controller = TextEditingController(text: _photoUrl ?? '');
+    final url = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: uiText('Enter Image URL', size: 16, weight: FontWeight.w700),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(
+            hintText: 'https://example.com/photo.jpg',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, controller.text.trim()), child: const Text('OK')),
+        ],
+      ),
+    );
+    if (url != null && url.isNotEmpty) {
+      setState(() {
+        _photoUrl = url;
+        _photoBytes = null;
+        _pickedPhoto = null;
+      });
+    }
   }
 
   Future<void> _sendRequest() async {
@@ -89,15 +134,19 @@ class _RequestFormViewState extends State<RequestFormView> {
       final requestId = _repo.generateRequestId();
       final photoUrls = <String>[];
 
-      if (_pickedPhoto != null) {
-        final bytes = await _pickedPhoto!.readAsBytes();
+      if (_photoUrl != null && _photoUrl!.isNotEmpty) {
+        photoUrls.add(_photoUrl!);
+      } else if (_photoBytes != null) {
         final path = await _repo.uploadRequestPhoto(
           uid: user.uid,
           requestId: requestId,
-          bytes: bytes,
+          bytes: _photoBytes!,
         );
         if (path != null) photoUrls.add(path);
       }
+
+      final lat = LocationService.lastKnownDevicePosition?.latitude ?? 18.5204;
+      final lng = LocationService.lastKnownDevicePosition?.longitude ?? 73.8567;
 
       await _repo.createRequest(
         requestId: requestId,
@@ -107,8 +156,8 @@ class _RequestFormViewState extends State<RequestFormView> {
         category: _category,
         description: desc,
         photoUrls: photoUrls,
-        latitude: 18.5204,
-        longitude: 73.8567,
+        latitude: lat,
+        longitude: lng,
         roughAddress: address,
         exactAddress: address,
         urgency: _urgency == Urgency.sos ? 'sos' : 'now',
@@ -161,10 +210,39 @@ class _RequestFormViewState extends State<RequestFormView> {
               uiText('Add photo (optional)', size: 13.5, weight: FontWeight.w700),
               const SizedBox(height: 8),
               UiUploadCard(
-                label: _pickedPhoto != null ? 'Photo attached' : 'Upload photo',
-                pickedFile: _pickedPhoto,
+                label: (_photoUrl != null || _photoBytes != null)
+                    ? 'Photo attached'
+                    : 'Upload photo (Gallery or URL)',
+                pickedBytes: _photoBytes,
+                imageUrl: _photoUrl,
                 icon: Icons.add_a_photo_outlined,
-                onTap: _pickPhoto,
+                onTap: () {
+                  showModalBottomSheet(
+                    context: context,
+                    builder: (ctx) => SafeArea(
+                      child: Wrap(
+                        children: [
+                          ListTile(
+                            leading: const Icon(Icons.photo_library_outlined),
+                            title: const Text('Choose from Gallery'),
+                            onTap: () {
+                              Navigator.pop(ctx);
+                              _pickPhoto();
+                            },
+                          ),
+                          ListTile(
+                            leading: const Icon(Icons.link_rounded),
+                            title: const Text('Enter Image URL (Image.network)'),
+                            onTap: () {
+                              Navigator.pop(ctx);
+                              _enterImageUrl();
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
               ),
               const SizedBox(height: 18),
 

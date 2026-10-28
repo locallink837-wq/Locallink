@@ -43,7 +43,7 @@ class _ProviderProfileViewState extends State<ProviderProfileView> {
 
       if (picked != null) {
         setState(() => _isUploadingAvatar = true);
-        final bytes = await File(picked.path).readAsBytes();
+        final bytes = await picked.readAsBytes();
         final publicUrl = await _repo.uploadAvatar(uid: uid, bytes: bytes);
 
         if (!mounted) return;

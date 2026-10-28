@@ -1,11 +1,14 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../../../app/shells/customer_shell.dart';
+import '../../../core/localization/app_language.dart';
 import '../../../core/models/service_request.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../data/requests_repository.dart';
 import 'finding_providers_view.dart';
+import 'job_done_review_view.dart';
 import 'request_accepted_view.dart';
 
 /// Screen 3.8: Customer Request History.
@@ -30,7 +33,14 @@ class _RequestHistoryViewState extends State<RequestHistoryView> {
     return Theme(
       data: uiFeatureTheme(context, UiColors.teal),
       child: UiScaffold(
-        title: 'My requests',
+        title: AppLanguage.t('my_requests', defaultText: 'My requests'),
+        onBack: () {
+          if (Navigator.of(context).canPop()) {
+            Navigator.of(context).pop();
+          } else {
+            CustomerShell.of(context)?.setTab(0);
+          }
+        },
         body: Column(
           children: [
             // Tabs: Active, Done, Cancelled
@@ -134,11 +144,44 @@ class _RequestHistoryViewState extends State<RequestHistoryView> {
                                     FindingProvidersView.route,
                                     arguments: {'requestId': req.id},
                                   );
-                                } else if (req.isAccepted) {
+                                } else if (req.isAccepted || req.status == 'on_the_way' || req.status == 'in_progress') {
                                   Navigator.pushNamed(
                                     context,
                                     RequestAcceptedView.route,
                                     arguments: {'request': req, 'requestId': req.id},
+                                  );
+                                } else if (req.status == 'done') {
+                                  Navigator.pushNamed(
+                                    context,
+                                    JobDoneReviewView.route,
+                                    arguments: {'request': req, 'requestId': req.id},
+                                  );
+                                } else {
+                                  showModalBottomSheet(
+                                    context: context,
+                                    backgroundColor: Colors.transparent,
+                                    builder: (_) => Theme(
+                                      data: uiFeatureTheme(context, UiColors.teal),
+                                      child: UiBottomSheetFrame(
+                                        title: req.category.isNotEmpty ? req.category : 'Request details',
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            uiText('Status: ${req.parsedStatus.label}', weight: FontWeight.w700),
+                                            const SizedBox(height: 8),
+                                            uiText('Problem: ${req.description.isNotEmpty ? req.description : 'No description'}', color: UiColors.muted),
+                                            const SizedBox(height: 8),
+                                            uiText('Address: ${req.address}', color: UiColors.muted),
+                                            const SizedBox(height: 18),
+                                            UiMainButton(
+                                              label: 'Close',
+                                              onPressed: () => Navigator.pop(context),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
                                   );
                                 }
                               },

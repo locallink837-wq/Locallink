@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -26,6 +27,7 @@ class _ShopHoursPhotoViewState extends State<ShopHoursPhotoView> {
 
   bool _open24x7 = false;
   File? _pickedPhoto;
+  Uint8List? _photoBytes;
   bool _isUploading = false;
   String? _uploadedPhotoUrl;
   String? _errorMessage;
@@ -46,13 +48,41 @@ class _ShopHoursPhotoViewState extends State<ShopHoursPhotoView> {
       );
 
       if (picked != null) {
+        final bytes = await picked.readAsBytes();
         setState(() {
+          _photoBytes = bytes;
           _pickedPhoto = File(picked.path);
           _errorMessage = null;
         });
       }
     } catch (e) {
       setState(() => _errorMessage = 'Failed to select photo: $e');
+    }
+  }
+
+  void _enterImageUrl() async {
+    final controller = TextEditingController(text: _uploadedPhotoUrl ?? '');
+    final url = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: uiText('Enter Image URL', size: 16, weight: FontWeight.w700),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(
+            hintText: 'https://example.com/shop.jpg',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, controller.text.trim()), child: const Text('OK')),
+        ],
+      ),
+    );
+    if (url != null && url.isNotEmpty) {
+      setState(() {
+        _uploadedPhotoUrl = url;
+      });
     }
   }
 
@@ -72,13 +102,13 @@ class _ShopHoursPhotoViewState extends State<ShopHoursPhotoView> {
     });
 
     try {
-      if (_pickedPhoto != null) {
-        final bytes = await _pickedPhoto!.readAsBytes();
-        _uploadedPhotoUrl = await _repo.uploadListingPhoto(
+      if (_photoBytes != null) {
+        final url = await _repo.uploadListingPhoto(
           uid: uid,
           listingId: listingId,
-          bytes: bytes,
+          bytes: _photoBytes!,
         );
+        if (url != null) _uploadedPhotoUrl = url;
       }
 
       if (!mounted) return;
@@ -191,10 +221,39 @@ class _ShopHoursPhotoViewState extends State<ShopHoursPhotoView> {
               const SizedBox(height: 8),
 
               UiUploadCard(
-                label: _pickedPhoto != null ? 'Shop photo selected' : 'Add shop photo',
-                pickedFile: _pickedPhoto,
+                label: (_uploadedPhotoUrl != null || _photoBytes != null)
+                    ? 'Shop photo selected'
+                    : 'Add shop photo (Gallery or URL)',
+                pickedBytes: _photoBytes,
+                imageUrl: _uploadedPhotoUrl,
                 icon: Icons.storefront_outlined,
-                onTap: _pickPhoto,
+                onTap: () {
+                  showModalBottomSheet(
+                    context: context,
+                    builder: (ctx) => SafeArea(
+                      child: Wrap(
+                        children: [
+                          ListTile(
+                            leading: const Icon(Icons.photo_library_outlined),
+                            title: const Text('Choose from Gallery'),
+                            onTap: () {
+                              Navigator.pop(ctx);
+                              _pickPhoto();
+                            },
+                          ),
+                          ListTile(
+                            leading: const Icon(Icons.link_rounded),
+                            title: const Text('Enter Image URL (Image.network)'),
+                            onTap: () {
+                              Navigator.pop(ctx);
+                              _enterImageUrl();
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
               ),
               const SizedBox(height: 20),
             ],
