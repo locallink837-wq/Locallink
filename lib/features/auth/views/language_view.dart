@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/localization/app_language.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../state/auth_flow.dart';
 import 'role_choice_view.dart';
@@ -53,6 +54,7 @@ class _LanguageViewState extends State<LanguageView> {
           label: 'Continue',
           onPressed: () {
             AuthFlow.language = _selected;
+            AppLanguage.instance.setLanguage(_selected);
             Navigator.pushNamed(context, RoleChoiceView.route);
           },
         ),

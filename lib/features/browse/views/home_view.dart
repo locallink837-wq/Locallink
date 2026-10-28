@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
 
@@ -48,24 +50,32 @@ class _HomeViewState extends State<HomeView> {
     setState(() => _isLoading = true);
 
     try {
-      final pos = await _locationService.getCurrentPosition();
+      if (LocationService.lastKnownArea != null && LocationService.lastKnownArea!.isNotEmpty) {
+        _currentArea = LocationService.lastKnownArea!;
+      }
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid != null && uid.isNotEmpty) {
+        try {
+          final userDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+          final data = userDoc.data();
+          if (data != null) {
+            final savedArea = data['area'] as String?;
+            if (savedArea != null && savedArea.isNotEmpty) {
+              _currentArea = savedArea;
+            }
+            if (data['lat'] is num && data['lng'] is num) {
+              _userLat = (data['lat'] as num).toDouble();
+              _userLng = (data['lng'] as num).toDouble();
+            }
+          }
+        } catch (_) {}
+      }
+
+      final (pos, area) = await _locationService.getCurrentPositionAndArea();
       _userLat = pos.latitude;
       _userLng = pos.longitude;
-      final placemarks = await placemarkFromCoordinates(
-        pos.latitude,
-        pos.longitude,
-      );
-      if (placemarks.isNotEmpty) {
-        final place = placemarks.first;
-        final area =
-            [place.subLocality, place.locality, place.administrativeArea]
-                .whereType<String>()
-                .where((value) => value.trim().isNotEmpty)
-                .take(2)
-                .join(', ');
-        if (area.isNotEmpty && mounted) {
-          setState(() => _currentArea = area);
-        }
+      if (area.isNotEmpty && mounted) {
+        setState(() => _currentArea = area);
       }
     } catch (_) {}
 

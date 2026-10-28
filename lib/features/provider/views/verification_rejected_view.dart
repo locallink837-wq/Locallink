@@ -84,6 +84,15 @@ class VerificationRejectedView extends StatelessWidget {
                   onPressed: () => _contactSupport(context),
                 ),
                 const SizedBox(height: 12),
+
+                UiGhostButton(
+                  label: 'Log out',
+                  customAccent: UiColors.red,
+                  onPressed: () async {
+                    Navigator.pushNamedAndRemoveUntil(context, '/auth/splash', (r) => false);
+                  },
+                ),
+                const SizedBox(height: 12),
               ],
             ),
           ),

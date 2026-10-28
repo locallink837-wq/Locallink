@@ -48,10 +48,32 @@ class _SosViewState extends State<SosView> {
     final clean = number.replaceAll(RegExp(r'\s+'), '');
     final uri = Uri.parse('tel:$clean');
     try {
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri);
+      final launched = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+      if (!launched) {
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(uri);
+        } else if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Emergency Helpline: $clean'),
+              backgroundColor: UiColors.red,
+            ),
+          );
+        }
       }
-    } catch (_) {}
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Helpline number: $clean'),
+            backgroundColor: UiColors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override

@@ -56,6 +56,33 @@ class _PendingViewState extends State<PendingView> {
             title: 'We are verifying your details',
             subtitle:
                 'Our team is reviewing your profile and identity proofs. This usually takes under 2 hours. You can update your profile while you wait.',
+            primaryButtonText: 'Log out',
+            onPrimaryPressed: () async {
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: uiText('Log out', size: 18, weight: FontWeight.w800),
+                  content: uiText('Are you sure you want to log out of your provider account?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx, false),
+                      child: uiText('Cancel', color: UiColors.muted),
+                    ),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(backgroundColor: UiColors.red),
+                      onPressed: () => Navigator.pop(ctx, true),
+                      child: const Text('Log out', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+                    ),
+                  ],
+                ),
+              );
+              if (confirm == true) {
+                await FirebaseAuth.instance.signOut();
+                if (context.mounted) {
+                  Navigator.pushNamedAndRemoveUntil(context, '/auth/splash', (r) => false);
+                }
+              }
+            },
             secondaryButtonText: 'Edit profile',
             onSecondaryPressed: () {
               Navigator.pushNamed(context, RegisterCoreView.route);

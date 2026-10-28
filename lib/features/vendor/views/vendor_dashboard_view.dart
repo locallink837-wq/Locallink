@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../../core/models/listing.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/ui_kit.dart';
+import '../../safety_profile/views/profile_view.dart';
 import '../data/vendor_repository.dart';
 import 'edit_listing_view.dart';
 import 'verification_status_view.dart';
@@ -24,6 +25,33 @@ class _VendorDashboardViewState extends State<VendorDashboardView> {
   final _repo = VendorRepository();
   bool _isConfirming = false;
   String? _statusMessage;
+
+  Future<void> _handleLogout() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: uiText('Log out', size: 18, weight: FontWeight.w800),
+        content: uiText('Are you sure you want to log out of your business account?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: uiText('Cancel', color: UiColors.muted),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: UiColors.red),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Log out', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+    if (confirm == true) {
+      await FirebaseAuth.instance.signOut();
+      if (mounted) {
+        Navigator.pushNamedAndRemoveUntil(context, '/auth/splash', (r) => false);
+      }
+    }
+  }
 
   Future<void> _handleConfirmInfo(String listingId) async {
     setState(() => _isConfirming = true);
@@ -57,6 +85,17 @@ class _VendorDashboardViewState extends State<VendorDashboardView> {
       data: uiFeatureTheme(context, UiColors.amber),
       child: Scaffold(
         backgroundColor: UiColors.bg,
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
+          title: uiText('Business Dashboard', size: 18, weight: FontWeight.w800),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.logout_rounded, color: UiColors.red),
+              tooltip: 'Log out',
+              onPressed: _handleLogout,
+            ),
+          ],
+        ),
         bottomNavigationBar: NavigationBar(
           selectedIndex: 0,
           onDestinationSelected: (idx) {
@@ -64,6 +103,8 @@ class _VendorDashboardViewState extends State<VendorDashboardView> {
               Navigator.pushNamed(context, EditListingView.route);
             } else if (idx == 2) {
               Navigator.pushNamed(context, VerificationStatusView.route);
+            } else if (idx == 3) {
+              Navigator.pushNamed(context, ProfileView.route);
             }
           },
           destinations: const [
@@ -81,6 +122,11 @@ class _VendorDashboardViewState extends State<VendorDashboardView> {
               icon: Icon(Icons.shield_outlined),
               selectedIcon: Icon(Icons.shield_rounded, color: UiColors.amber),
               label: 'Status',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.person_outline),
+              selectedIcon: Icon(Icons.person, color: UiColors.amber),
+              label: 'Me',
             ),
           ],
         ),

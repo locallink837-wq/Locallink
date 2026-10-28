@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/localization/app_language.dart';
 import '../../features/assistant/views/assistant_view.dart';
 import '../../features/browse/views/home_view.dart';
 import '../../features/browse/views/map_view.dart';
@@ -13,12 +14,20 @@ class CustomerShell extends StatefulWidget {
   const CustomerShell({super.key});
   static const route = '/shell/customer';
 
+  static _CustomerShellState? of(BuildContext context) =>
+      context.findAncestorStateOfType<_CustomerShellState>();
+
   @override
   State<CustomerShell> createState() => _CustomerShellState();
 }
 
 class _CustomerShellState extends State<CustomerShell> {
   int _index = 0;
+
+  void setTab(int index) {
+    if (mounted) setState(() => _index = index);
+  }
+
   static const _pages = <Widget>[
     HomeView(),
     MapView(),
@@ -48,31 +57,31 @@ class _CustomerShellState extends State<CustomerShell> {
             selectedIndex: _index,
             onDestinationSelected: (i) => setState(() => _index = i),
             indicatorColor: AppColors.teal.withValues(alpha: 0.15),
-            destinations: const [
+            destinations: [
               NavigationDestination(
-                icon: Icon(Icons.home_outlined),
-                selectedIcon: Icon(Icons.home, color: AppColors.teal),
-                label: 'Home',
+                icon: const Icon(Icons.home_outlined),
+                selectedIcon: const Icon(Icons.home, color: AppColors.teal),
+                label: AppLanguage.t('nav_home', defaultText: 'Home'),
               ),
               NavigationDestination(
-                icon: Icon(Icons.map_outlined),
-                selectedIcon: Icon(Icons.map, color: AppColors.teal),
-                label: 'Map',
+                icon: const Icon(Icons.map_outlined),
+                selectedIcon: const Icon(Icons.map, color: AppColors.teal),
+                label: AppLanguage.t('nav_map', defaultText: 'Map'),
               ),
               NavigationDestination(
-                icon: Icon(Icons.auto_awesome_outlined),
-                selectedIcon: Icon(Icons.auto_awesome, color: AppColors.teal),
-                label: 'AI',
+                icon: const Icon(Icons.auto_awesome_outlined),
+                selectedIcon: const Icon(Icons.auto_awesome, color: AppColors.teal),
+                label: AppLanguage.t('nav_ai', defaultText: 'AI'),
               ),
               NavigationDestination(
-                icon: Icon(Icons.format_list_bulleted_outlined),
-                selectedIcon: Icon(Icons.format_list_bulleted, color: AppColors.teal),
-                label: 'Requests',
+                icon: const Icon(Icons.format_list_bulleted_outlined),
+                selectedIcon: const Icon(Icons.format_list_bulleted, color: AppColors.teal),
+                label: AppLanguage.t('nav_requests', defaultText: 'Requests'),
               ),
               NavigationDestination(
-                icon: Icon(Icons.person_outline),
-                selectedIcon: Icon(Icons.person, color: AppColors.teal),
-                label: 'Me',
+                icon: const Icon(Icons.person_outline),
+                selectedIcon: const Icon(Icons.person, color: AppColors.teal),
+                label: AppLanguage.t('nav_me', defaultText: 'Me'),
               ),
             ],
           ),

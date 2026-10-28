@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
+import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 
 import '../config/env.dart';
@@ -11,7 +12,9 @@ import '../models/listing.dart';
 /// and list sorting by distance with verified-first priority.
 class LocationService {
   const LocationService();
-  static bool _permissionRequestAttempted = false;
+
+  static Position? lastKnownDevicePosition;
+  static String? lastKnownArea;
 
   /// Check if location permissions are currently granted
   Future<bool> hasPermission() async {
@@ -32,7 +35,6 @@ class LocationService {
       if (!serviceEnabled) {
         debugPrint('Location services are disabled on device.');
       }
-      _permissionRequestAttempted = true;
       return await Geolocator.requestPermission();
     } catch (e) {
       debugPrint('Error requesting location permission: $e');
@@ -40,36 +42,82 @@ class LocationService {
     }
   }
 
-  /// Get current user device coordinates, falling back to default location on error
+  /// Get current user device coordinates, prioritizing real GPS with fallback
   Future<Position> getCurrentPosition() async {
     try {
       final serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
-        return _fallbackPosition();
+        return lastKnownDevicePosition ?? _fallbackPosition();
       }
 
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
-        if (!_permissionRequestAttempted) {
-          _permissionRequestAttempted = true;
-          permission = await Geolocator.requestPermission();
-        }
+        permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied ||
             permission == LocationPermission.deniedForever) {
-          return _fallbackPosition();
+          return lastKnownDevicePosition ?? _fallbackPosition();
         }
       }
 
-      return await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.medium,
-          timeLimit: Duration(seconds: 8),
-        ),
-      );
+      // Check last known position first for quick responsiveness
+      final lastKnown = await Geolocator.getLastKnownPosition();
+      if (lastKnown != null) {
+        lastKnownDevicePosition = lastKnown;
+      }
+
+      try {
+        final current = await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.high,
+            timeLimit: Duration(seconds: 12),
+          ),
+        );
+        lastKnownDevicePosition = current;
+        return current;
+      } catch (e) {
+        debugPrint('GPS fix timeout/error, using last known: $e');
+        if (lastKnown != null) return lastKnown;
+      }
+
+      return lastKnownDevicePosition ?? _fallbackPosition();
     } catch (e) {
       debugPrint('Error getting current position, using fallback: $e');
-      return _fallbackPosition();
+      return lastKnownDevicePosition ?? _fallbackPosition();
     }
+  }
+
+  /// Fetch position and reverse geocode to a readable locality/area name
+  Future<(Position, String)> getCurrentPositionAndArea() async {
+    final pos = await getCurrentPosition();
+    String area = lastKnownArea ?? '';
+
+    try {
+      final placemarks = await placemarkFromCoordinates(
+        pos.latitude,
+        pos.longitude,
+      );
+      if (placemarks.isNotEmpty) {
+        final p = placemarks.first;
+        final parts = [p.subLocality, p.locality, p.administrativeArea]
+            .whereType<String>()
+            .map((s) => s.trim())
+            .where((s) => s.isNotEmpty)
+            .toList();
+
+        if (parts.isNotEmpty) {
+          area = parts.take(2).join(', ');
+          lastKnownArea = area;
+        }
+      }
+    } catch (e) {
+      debugPrint('Reverse geocode error: $e');
+    }
+
+    if (area.isEmpty) {
+      area = lastKnownArea ?? Env.defaultAreaLabel;
+    }
+
+    return (pos, area);
   }
 
   Position _fallbackPosition() {

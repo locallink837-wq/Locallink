@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../../../core/services/location_service.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../data/safety_profile_repository.dart';
 
@@ -16,7 +17,7 @@ class UrgentRequestView extends StatefulWidget {
 }
 
 class _UrgentRequestViewState extends State<UrgentRequestView> {
-  final _addressController = TextEditingController(text: 'Current location (GPS Confirmed)');
+  late final TextEditingController _addressController;
   final _repo = SafetyProfileRepository();
 
   String _selectedCategory = 'Locksmith';
@@ -31,6 +32,14 @@ class _UrgentRequestViewState extends State<UrgentRequestView> {
     'Ambulance',
     'Mechanic',
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _addressController = TextEditingController(
+      text: LocationService.lastKnownArea ?? 'Current location (GPS Confirmed)',
+    );
+  }
 
   @override
   void dispose() {
@@ -51,14 +60,17 @@ class _UrgentRequestViewState extends State<UrgentRequestView> {
     });
 
     try {
+      const locationService = LocationService();
+      final pos = await locationService.getCurrentPosition();
+
       await _repo.createUrgentSosRequest(
         customerId: user.uid,
         customerName: user.displayName ?? 'Customer',
         customerPhone: user.phoneNumber ?? '+91 98765 43210',
         category: _selectedCategory,
         address: _addressController.text.trim(),
-        lat: 18.5204,
-        lng: 73.8567,
+        lat: pos.latitude,
+        lng: pos.longitude,
       );
 
       if (!mounted) return;

@@ -1,6 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../../../core/localization/app_language.dart';
+import '../../../app/theme/theme_controller.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../data/safety_profile_repository.dart';
 
@@ -18,11 +20,23 @@ class SettingsView extends StatefulWidget {
 class _SettingsViewState extends State<SettingsView> {
   final _repo = SafetyProfileRepository();
   bool _notificationsEnabled = true;
-  bool _darkMode = false;
-  String _selectedLanguage = 'English';
+  late bool _darkMode;
+  late String _selectedLanguage;
+
+  @override
+  void initState() {
+    super.initState();
+    _darkMode = ThemeController.instance.isDark;
+    final code = AppLanguage.instance.code;
+    _selectedLanguage = code == 'hi' ? 'Hindi' : (code == 'mr' ? 'Marathi' : 'English');
+  }
 
   void _saveSettings() {
     final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final langCode = _selectedLanguage == 'Hindi' ? 'hi' : (_selectedLanguage == 'Marathi' ? 'mr' : 'en');
+    AppLanguage.instance.setLanguage(langCode);
+    ThemeController.instance.setDarkMode(_darkMode);
+
     if (uid.isNotEmpty) {
       _repo.updateSettings(
         uid: uid,
@@ -30,7 +44,7 @@ class _SettingsViewState extends State<SettingsView> {
           'notifications': _notificationsEnabled,
           'darkMode': _darkMode,
         },
-        language: _selectedLanguage == 'Hindi' ? 'hi' : (_selectedLanguage == 'Marathi' ? 'mr' : 'en'),
+        language: langCode,
       );
     }
   }
