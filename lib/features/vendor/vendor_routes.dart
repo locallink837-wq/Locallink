@@ -21,6 +21,7 @@ final Map<String, WidgetBuilder> vendorRoutes = {
   PlaceLocationView.route: (_) => const PlaceLocationView(),
   ClaimListingView.route: (_) => const ClaimListingView(),
   VendorDashboardView.route: (_) => const VendorDashboardView(),
+  '/vendor/dashboard': (_) => const VendorDashboardView(),
   EditListingView.route: (_) => const EditListingView(),
   VerificationStatusView.route: (_) => const VerificationStatusView(),
 };

@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../firebase_options.dart';
+import '../localization/app_language.dart';
 import 'env.dart';
 
 /// App bootstrap & service initialization.
@@ -11,6 +12,8 @@ import 'env.dart';
 /// Initializes Firebase and Supabase with resilient fallbacks
 /// so the UI and Dev screen launcher (/dev) can run even before backend credentials are wired.
 Future<void> bootstrap() async {
+  // Load saved language preference
+  await AppLanguage.instance.init();
   // 1. Initialize Firebase
   try {
     await Firebase.initializeApp(

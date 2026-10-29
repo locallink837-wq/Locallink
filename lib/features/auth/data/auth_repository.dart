@@ -110,6 +110,18 @@ class AuthRepository {
   /// created later with the role the person chose.
   Future<User> signInWithGoogle() async {
     try {
+      if (kIsWeb) {
+        final googleProvider = GoogleAuthProvider();
+        googleProvider.addScope('email');
+        googleProvider.addScope('profile');
+        final credential = await _auth.signInWithPopup(googleProvider);
+        final user = credential.user;
+        if (user == null) {
+          throw const AuthFailure('Login failed. Please try again.');
+        }
+        return user;
+      }
+
       if (!_googleReady) {
         await GoogleSignIn.instance.initialize();
         _googleReady = true;
@@ -137,6 +149,18 @@ class AuthRepository {
         'Google sign-in failed. Check your internet and try again.',
       );
     } on FirebaseAuthException catch (e) {
+      if (e.code == 'popup-closed-by-user' || e.code == 'cancelled-popup-request') {
+        throw const AuthFailure.cancelled();
+      }
+      debugPrint('Firebase Google sign-in auth error: [${e.code}] ${e.message}');
+      throw AuthFailure(friendlyError(e));
+    } catch (e) {
+      if (e is AuthFailure) rethrow;
+      final msg = e.toString().toLowerCase();
+      if (msg.contains('popup_closed') || msg.contains('cancelled') || msg.contains('canceled')) {
+        throw const AuthFailure.cancelled();
+      }
+      debugPrint('Unexpected Google sign-in error: $e');
       throw AuthFailure(friendlyError(e));
     }
   }
@@ -439,13 +463,27 @@ class AuthRepository {
           return 'The OTP expired. Please request a new one.';
         case 'quota-exceeded':
           return 'SMS limit reached for now. Please try again later.';
+        case 'popup-closed-by-user':
+        case 'cancelled-popup-request':
+          return 'Google sign-in popup was closed.';
+        case 'popup-blocked':
+          return 'Google sign-in popup was blocked by your browser. Please allow popups for localhost.';
+        case 'unauthorized-domain':
+          return 'This domain is not authorized in Firebase Auth. Please check authorized domains in Firebase Console.';
         case 'operation-not-allowed':
-          return 'This login method is not enabled yet. Ask the team to enable it in Firebase.';
+          return 'Google sign-in is not enabled in Firebase Console. Please enable it under Authentication > Sign-in method.';
         case 'account-exists-with-different-credential':
           return 'This email is registered with another login method.';
         default:
           return e.message ?? 'Login failed. Please try again.';
       }
+    }
+    final errStr = e.toString().toLowerCase();
+    if (errStr.contains('popup_closed') || errStr.contains('popup-closed')) {
+      return 'Google sign-in popup was closed.';
+    }
+    if (errStr.contains('popup_blocked') || errStr.contains('popup-blocked')) {
+      return 'Google sign-in popup was blocked by browser. Please allow popups.';
     }
     if (e is FirebaseException) {
       if (e.code == 'permission-denied') {

@@ -32,11 +32,13 @@ final Map<String, WidgetBuilder> providerRoutes = {
   RegisterDocumentsView.route: (_) => const RegisterDocumentsView(),
   PendingView.route: (_) => const PendingView(),
   VerificationRejectedView.route: (_) => const VerificationRejectedView(),
+  '/provider/rejected': (_) => const VerificationRejectedView(),
 
   // Leads and job management (6.6 to 6.10 + outcome screens)
   LeadInboxView.route: (_) => const LeadInboxView(),
   LeadDetailView.route: (_) => const LeadDetailView(),
   ConfirmFeeSheetView.route: (_) => const ConfirmFeeSheetView(),
+  '/provider/confirm-fee': (_) => const ConfirmFeeSheetView(),
   LeadAlreadyTakenView.route: (_) => const LeadAlreadyTakenView(),
   LeadExpiredView.route: (_) => const LeadExpiredView(),
   LowWalletView.route: (_) => const LowWalletView(),
