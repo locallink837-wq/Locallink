@@ -48,7 +48,9 @@ final Map<String, WidgetBuilder> providerRoutes = {
   // Wallet, Dashboard, and Profile (6.11 to 6.13 + sub-screens)
   WalletView.route: (_) => const WalletView(),
   ProviderDashboardView.route: (_) => const ProviderDashboardView(),
+  '/provider/dashboard': (_) => const ProviderDashboardView(),
   ProviderProfileView.route: (_) => const ProviderProfileView(),
+  '/provider/profile': (_) => const ProviderProfileView(),
   EditServicesView.route: (_) => const EditServicesView(),
   ServiceAreaView.route: (_) => const ServiceAreaView(),
   DocumentsStatusView.route: (_) => const DocumentsStatusView(),

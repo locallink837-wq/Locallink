@@ -7,7 +7,6 @@ import '../../../core/widgets/ui_kit.dart';
 import '../../safety_profile/views/profile_view.dart';
 import '../data/vendor_repository.dart';
 import 'edit_listing_view.dart';
-import 'verification_status_view.dart';
 
 /// Screen 7.8: Vendor Dashboard.
 /// Streams listing_stats/{listingId} (views, calls, directions) and owner's listing.
@@ -102,8 +101,6 @@ class _VendorDashboardViewState extends State<VendorDashboardView> {
             if (idx == 1) {
               Navigator.pushNamed(context, EditListingView.route);
             } else if (idx == 2) {
-              Navigator.pushNamed(context, VerificationStatusView.route);
-            } else if (idx == 3) {
               Navigator.pushNamed(context, ProfileView.route);
             }
           },
@@ -119,14 +116,9 @@ class _VendorDashboardViewState extends State<VendorDashboardView> {
               label: 'Edit Info',
             ),
             NavigationDestination(
-              icon: Icon(Icons.shield_outlined),
-              selectedIcon: Icon(Icons.shield_rounded, color: UiColors.amber),
-              label: 'Status',
-            ),
-            NavigationDestination(
               icon: Icon(Icons.person_outline),
               selectedIcon: Icon(Icons.person, color: UiColors.amber),
-              label: 'Me',
+              label: 'Profile',
             ),
           ],
         ),

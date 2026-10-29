@@ -369,28 +369,7 @@ class AuthRepository {
           if (!snap.exists) {
             return const AuthDestination(AuthTargets.providerRegister);
           }
-          final data = snap.data() ?? {};
-          final status = (data['verificationStatus'] ?? 'draft')
-              .toString()
-              .toLowerCase();
-          switch (status) {
-            case 'approved':
-              return const AuthDestination(AuthTargets.providerShell);
-            case 'pending':
-              return const AuthDestination(AuthTargets.providerPending);
-            case 'rejected':
-              return AuthDestination(
-                AuthTargets.providerRejected,
-                arguments: {
-                  'rejectionReason':
-                      (data['rejectionReason'] ??
-                              'Documents could not be verified.')
-                          .toString(),
-                },
-              );
-            default:
-              return const AuthDestination(AuthTargets.providerRegister);
-          }
+          return const AuthDestination(AuthTargets.providerShell);
         } catch (e) {
           debugPrint('Provider status lookup failed: $e');
           return const AuthDestination(AuthTargets.providerShell);

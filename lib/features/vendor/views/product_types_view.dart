@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/widgets/ui_kit.dart';
 import '../data/vendor_repository.dart';
-import 'verification_status_view.dart';
+import '../../../app/shells/vendor_shell.dart';
 
 /// Screen 7.4: Product Types / Inventory Tags.
 /// Reads product chips from Firestore config/shopProducts (field 'items') and executes final atomic write.
@@ -94,12 +94,11 @@ class _ProductTypesViewState extends State<ProductTypesView> {
       );
 
       if (!mounted) return;
-      // Navigate to verification status screen
+      // Navigate directly to VendorShell
       Navigator.pushNamedAndRemoveUntil(
         context,
-        VerificationStatusView.route,
+        VendorShell.route,
         (route) => false,
-        arguments: {'listingId': listingId},
       );
     } catch (e) {
       if (!mounted) return;

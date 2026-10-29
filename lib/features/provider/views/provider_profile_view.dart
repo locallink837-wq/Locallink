@@ -6,7 +6,6 @@ import 'package:image_picker/image_picker.dart';
 import '../../../core/models/listing.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../data/provider_repository.dart';
-import 'documents_status_view.dart';
 import 'edit_services_view.dart';
 import 'my_reviews_view.dart';
 import 'service_area_view.dart';
@@ -189,12 +188,6 @@ class _ProviderProfileViewState extends State<ProviderProfileView> {
                               subtitle: 'Operating radius and center location',
                               icon: Icons.map_outlined,
                               onTap: () => Navigator.pushNamed(context, ServiceAreaView.route),
-                            ),
-                            UiListTile(
-                              title: 'Documents',
-                              subtitle: 'ID proof and selfie verification status',
-                              icon: Icons.description_outlined,
-                              onTap: () => Navigator.pushNamed(context, DocumentsStatusView.route),
                             ),
                             UiListTile(
                               title: 'Reviews',

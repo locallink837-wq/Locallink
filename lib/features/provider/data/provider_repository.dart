@@ -152,8 +152,8 @@ class ProviderRepository {
     required double latitude,
     required double longitude,
     required String address,
-    required String idProofPath,
-    required String selfiePath,
+    String idProofPath = '',
+    String selfiePath = '',
   }) async {
     final batch = _firestore.batch();
     final now = FieldValue.serverTimestamp();
@@ -188,7 +188,7 @@ class ProviderRepository {
         'selfiePath': selfiePath,
       },
       'available': true,
-      'verificationStatus': 'pending',
+      'verificationStatus': 'approved',
       'submittedAt': now,
     });
 
@@ -208,8 +208,8 @@ class ProviderRepository {
       'photoUrls': <String>[],
       'ratingSum': 0,
       'reviewCount': 0,
-      'verified': false,
-      'status': 'pending',
+      'verified': true,
+      'status': 'active',
       'ownerId': uid,
       'createdAt': now,
     });

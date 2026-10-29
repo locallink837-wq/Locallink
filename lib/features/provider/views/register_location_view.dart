@@ -1,11 +1,13 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../../../app/shells/provider_shell.dart';
 import '../../../core/widgets/location_map_picker.dart';
 import '../../../core/widgets/ui_kit.dart';
-import 'register_documents_view.dart';
+import '../data/provider_repository.dart';
 
-/// Screen 6.3: Provider Registration Step 3 - Location and Service Center.
-/// Uses geolocator to fetch GPS location, reverse geocodes to address, and includes manual address input.
+/// Screen 6.3: Provider Registration Step 3 - Location and Completion.
+/// Uses geolocator to fetch GPS location, reverse geocodes to address, and submits registration.
 class RegisterLocationView extends StatefulWidget {
   const RegisterLocationView({super.key});
 
@@ -17,9 +19,11 @@ class RegisterLocationView extends StatefulWidget {
 
 class _RegisterLocationViewState extends State<RegisterLocationView> {
   final _addressController = TextEditingController();
+  final _repo = ProviderRepository();
   double _latitude = 18.5204; // Default Pune fallback
   double _longitude = 73.8567;
   String? _errorMessage;
+  bool _isSubmitting = false;
 
   @override
   void dispose() {
@@ -27,7 +31,7 @@ class _RegisterLocationViewState extends State<RegisterLocationView> {
     super.dispose();
   }
 
-  void _onNext() {
+  Future<void> _onComplete() async {
     final address = _addressController.text.trim();
     if (address.isEmpty) {
       setState(
@@ -36,23 +40,51 @@ class _RegisterLocationViewState extends State<RegisterLocationView> {
       return;
     }
 
-    setState(() => _errorMessage = null);
+    setState(() {
+      _errorMessage = null;
+      _isSubmitting = true;
+    });
 
     final prevArgs =
         (ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?) ??
         {};
-    final combinedData = Map<String, dynamic>.from(prevArgs)
-      ..addAll({
-        'latitude': _latitude,
-        'longitude': _longitude,
-        'address': address,
-      });
+    final user = FirebaseAuth.instance.currentUser;
+    final uid = user?.uid ?? 'temp-provider-uid';
 
-    Navigator.pushNamed(
-      context,
-      RegisterDocumentsView.route,
-      arguments: combinedData,
-    );
+    try {
+      await _repo.submitRegistration(
+        uid: uid,
+        name: (prevArgs['name'] ?? 'Provider').toString(),
+        businessName: (prevArgs['businessName'] ?? '').toString(),
+        phone: (prevArgs['phone'] ?? '').toString(),
+        services: List<String>.from(prevArgs['services'] ?? ['Services']),
+        experienceYears: (prevArgs['experienceYears'] as num?)?.toInt() ?? 1,
+        radiusKm: (prevArgs['radiusKm'] as num?)?.toDouble() ?? 10.0,
+        languages: List<String>.from(prevArgs['languages'] ?? ['English']),
+        open24x7: (prevArgs['open24x7'] as bool?) ?? false,
+        latitude: _latitude,
+        longitude: _longitude,
+        address: address,
+      );
+
+      if (!mounted) return;
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        ProviderShell.route,
+        (route) => false,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        ProviderShell.route,
+        (route) => false,
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
   }
 
   @override
@@ -60,17 +92,21 @@ class _RegisterLocationViewState extends State<RegisterLocationView> {
     return Theme(
       data: uiFeatureTheme(context, UiColors.indigo),
       child: UiScaffold(
-        title: 'Register (3 of 4)',
-        bottomButton: UiMainButton(label: 'Next', onPressed: _onNext),
+        title: 'Register (3 of 3)',
+        bottomButton: UiMainButton(
+          label: _isSubmitting ? 'Registering...' : 'Complete Registration',
+          isLoading: _isSubmitting,
+          onPressed: _isSubmitting ? null : _onComplete,
+        ),
         body: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Stepper (3 of 4)
+              // Stepper (3 of 3)
               const UiStepper(
-                totalSteps: 4,
+                totalSteps: 3,
                 currentStep: 3,
-                stepLabels: ['Core', 'Details', 'Area', 'Docs'],
+                stepLabels: ['Core', 'Details', 'Location'],
               ),
               const SizedBox(height: 20),
 

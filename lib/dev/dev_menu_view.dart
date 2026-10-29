@@ -526,38 +526,6 @@ class _DevMenuViewState extends State<DevMenuView> {
       mockArgs: {'name': 'Ramesh Shinde', 'trade': 'Plumber'},
     ),
     _ScreenItem(
-      title: 'Provider 4: Verification Docs',
-      route: '/provider/register-documents',
-      category: 'Service Provider',
-      description: 'Upload Aadhaar front/back and optional skill certificates',
-      icon: Icons.upload_file_rounded,
-      color: Color(0xFF27AE60),
-      mockArgs: {
-        'name': 'Ramesh Shinde',
-        'trade': 'Plumber',
-        'address': 'Kothrud, Pune',
-      },
-    ),
-    _ScreenItem(
-      title: 'Application Pending Review',
-      route: '/provider/pending',
-      category: 'Service Provider',
-      description: 'Verification status tracker with background check timer',
-      icon: Icons.pending_actions_rounded,
-      color: Color(0xFF27AE60),
-    ),
-    _ScreenItem(
-      title: 'Verification Rejected',
-      route: '/provider/rejected',
-      category: 'Service Provider',
-      description: 'Review rejection reason and resubmit updated documents',
-      icon: Icons.highlight_off_rounded,
-      color: AppColors.red,
-      mockArgs: {
-        'reason': 'Aadhaar photo is blurry. Please upload a clear photo.',
-      },
-    ),
-    _ScreenItem(
       title: 'Provider Lead Inbox',
       route: '/provider/lead-inbox',
       category: 'Service Provider',
@@ -694,14 +662,6 @@ class _DevMenuViewState extends State<DevMenuView> {
       icon: Icons.reviews_rounded,
       color: AppColors.star,
     ),
-    _ScreenItem(
-      title: 'Documents Status',
-      route: '/provider/documents-status',
-      category: 'Service Provider',
-      description: 'Check Aadhaar, driving licence, and trade cert status',
-      icon: Icons.verified_user_rounded,
-      color: Color(0xFF27AE60),
-    ),
 
     // -------------------------------------------------------------------------
     // MODULE 7: VENDOR & PLACE OWNER
@@ -791,18 +751,6 @@ class _DevMenuViewState extends State<DevMenuView> {
       icon: Icons.edit_attributes_rounded,
       color: AppColors.amber,
       mockArgs: {'listingId': 'demo_shop_1'},
-    ),
-    _ScreenItem(
-      title: 'Verification Status Badge',
-      route: '/vendor/verification-status',
-      category: 'Vendor & Shop',
-      description: 'Check verified business badge and review feedback',
-      icon: Icons.military_tech_rounded,
-      color: AppColors.amber,
-      mockArgs: {
-        'businessName': 'Pune Hardware & Paints',
-        'status': 'under_review',
-      },
     ),
 
     // -------------------------------------------------------------------------
