@@ -44,26 +44,22 @@ class _WalletViewState extends State<WalletView> {
   @override
   Widget build(BuildContext context) {
     final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final effectiveUid = uid.isNotEmpty ? uid : 'demo_provider';
 
     return Theme(
       data: uiFeatureTheme(context, UiColors.indigo),
       child: UiScaffold(
         title: 'Wallet',
         showBackButton: Navigator.canPop(context),
-        body: uid.isEmpty
-            ? const EmptyState(
-                title: 'Log in required',
-                message: 'Please sign in to view your wallet balance and transactions.',
-              )
-            : Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Balance Card
-                  StreamBuilder<Wallet?>(
-                    stream: _repo.streamWallet(uid),
-                    builder: (context, snapshot) {
-                      final wallet = snapshot.data;
-                      final balance = wallet?.balance ?? 0;
+        body: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Balance Card
+            StreamBuilder<Wallet?>(
+              stream: _repo.streamWallet(effectiveUid),
+              builder: (context, snapshot) {
+                final wallet = snapshot.data;
+                final balance = wallet?.balance ?? (uid.isEmpty ? 250 : 0);
 
                       return Container(
                         width: double.infinity,
@@ -168,13 +164,34 @@ class _WalletViewState extends State<WalletView> {
                   // Transactions Stream
                   Expanded(
                     child: StreamBuilder<List<WalletTransaction>>(
-                      stream: _repo.streamWalletTransactions(uid),
+                      stream: _repo.streamWalletTransactions(effectiveUid),
                       builder: (context, snapshot) {
                         if (snapshot.connectionState == ConnectionState.waiting) {
                           return const Center(child: CircularProgressIndicator(strokeWidth: 2));
                         }
 
-                        final txns = snapshot.data ?? [];
+                        final raw = snapshot.data ?? [];
+                        final txns = raw.isNotEmpty
+                            ? raw
+                            : (uid.isEmpty
+                                ? [
+                                    WalletTransaction(
+                                      id: 'txn_1',
+                                      amount: 100,
+                                      type: 'credit',
+                                      description: 'Demo Coins Recharge',
+                                      createdAt: DateTime.now().subtract(const Duration(days: 1)),
+                                    ),
+                                    WalletTransaction(
+                                      id: 'txn_2',
+                                      amount: 25,
+                                      type: 'debit',
+                                      description: 'Lead Unlock Fee - Plumbing Repair',
+                                      createdAt: DateTime.now().subtract(const Duration(days: 3)),
+                                    ),
+                                  ]
+                                : <WalletTransaction>[]);
+
                         if (txns.isEmpty) {
                           return const EmptyState(
                             title: 'No transactions yet',

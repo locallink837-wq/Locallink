@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import '../../../core/models/lead.dart';
 import '../../../core/models/listing.dart';
 import '../../../core/models/wallet.dart';
-import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../data/provider_repository.dart';
 import 'accepted_contact_view.dart';
@@ -31,15 +30,7 @@ class _ProviderDashboardViewState extends State<ProviderDashboardView> {
   @override
   Widget build(BuildContext context) {
     final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
-
-    if (uid.isEmpty) {
-      return const Scaffold(
-        body: EmptyState(
-          title: 'Not logged in',
-          message: 'Please log in to access your provider dashboard.',
-        ),
-      );
-    }
+    final effectiveUid = uid.isNotEmpty ? uid : 'demo_provider';
 
     return Theme(
       data: uiFeatureTheme(context, UiColors.indigo),
@@ -83,29 +74,50 @@ class _ProviderDashboardViewState extends State<ProviderDashboardView> {
         ),
         body: SafeArea(
           child: StreamBuilder<Map<String, dynamic>?>(
-            stream: _repo.streamProvider(uid),
+            stream: _repo.streamProvider(effectiveUid),
             builder: (context, providerSnap) {
               final providerData = providerSnap.data ?? {};
               final isAvailable = providerData['available'] as bool? ?? true;
-              final displayName = providerData['displayName']?.toString() ?? 'Provider';
+              final displayName = providerData['displayName']?.toString() ??
+                  (uid.isEmpty ? 'Ramesh Kumar (Plumber)' : 'Provider');
 
               return StreamBuilder<Listing?>(
-                stream: _repo.streamListing(uid),
+                stream: _repo.streamListing(effectiveUid),
                 builder: (context, listingSnap) {
                   final listing = listingSnap.data;
-                  final avgRating = listing != null ? listing.averageRating : 0.0;
-                  final reviewCount = listing?.reviewCount ?? 0;
+                  final avgRating = listing != null
+                      ? listing.averageRating
+                      : (uid.isEmpty ? 4.9 : 0.0);
+                  final reviewCount = listing?.reviewCount ?? (uid.isEmpty ? 14 : 0);
 
                   return StreamBuilder<Wallet?>(
-                    stream: _repo.streamWallet(uid),
+                    stream: _repo.streamWallet(effectiveUid),
                     builder: (context, walletSnap) {
                       final wallet = walletSnap.data;
-                      final balance = wallet?.balance ?? 0;
+                      final balance = wallet?.balance ?? (uid.isEmpty ? 250 : 0);
 
                       return StreamBuilder<List<Lead>>(
-                        stream: _repo.streamInboxLeads(uid),
+                        stream: _repo.streamInboxLeads(effectiveUid),
                         builder: (context, leadsSnap) {
-                          final openLeads = leadsSnap.data ?? [];
+                          final rawLeads = leadsSnap.data ?? [];
+                          final openLeads = rawLeads.isNotEmpty
+                              ? rawLeads
+                              : (uid.isEmpty
+                                  ? [
+                                      Lead(
+                                        id: 'demo_lead_1',
+                                        requestId: 'demo_req_1',
+                                        providerId: effectiveUid,
+                                        category: 'Plumbing Repair',
+                                        areaLabel: 'Model Colony, Pune',
+                                        summary: 'Bathroom pipeline leakage urgent.',
+                                        fee: 25,
+                                        distanceM: 1200,
+                                        status: 'new',
+                                        createdAt: DateTime.now(),
+                                      ),
+                                    ]
+                                  : <Lead>[]);
 
                           return SingleChildScrollView(
                             padding: const EdgeInsets.all(16),

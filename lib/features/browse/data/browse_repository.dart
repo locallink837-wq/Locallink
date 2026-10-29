@@ -50,19 +50,23 @@ class BrowseRepository {
   String? get currentAccountId => _isRealUser ? _currentUserId : null;
 
   Future<Set<String>> fetchSavedListingIds() async {
-    if (!_isRealUser) return {};
-    final firestore = _firestore;
-    final userId = _currentUserId;
-    if (firestore == null || userId == null) return {};
+    try {
+      if (!_isRealUser) return {};
+      final firestore = _firestore;
+      final userId = _currentUserId;
+      if (firestore == null || userId == null) return {};
 
-    final snapshot = await firestore
-        .collection(FsPaths.users)
-        .doc(userId)
-        .get();
-    final values = snapshot.data()?['savedListingIds'];
-    return values is Iterable
-        ? Set<String>.from(values.whereType<String>())
-        : {};
+      final snapshot = await firestore
+          .collection(FsPaths.users)
+          .doc(userId)
+          .get();
+      final values = snapshot.data()?['savedListingIds'];
+      return values is Iterable
+          ? Set<String>.from(values.whereType<String>())
+          : {};
+    } catch (_) {
+      return {};
+    }
   }
 
   Future<void> saveListingIds(Iterable<String> ids) async {

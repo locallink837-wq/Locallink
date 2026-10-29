@@ -117,7 +117,7 @@ class SafetyProfileRepository {
     return _firestore.collection(FsPaths.users).doc(uid).snapshots().map((snap) {
       if (!snap.exists || snap.data() == null) return null;
       return AppUser.fromMap(snap.id, snap.data()!);
-    });
+    }).handleError((_) => null);
   }
 
   /// Update user profile in users/{uid}.

@@ -40,6 +40,7 @@ final Map<String, WidgetBuilder> providerRoutes = {
   ConfirmFeeSheetView.route: (_) => const ConfirmFeeSheetView(),
   '/provider/confirm-fee': (_) => const ConfirmFeeSheetView(),
   LeadAlreadyTakenView.route: (_) => const LeadAlreadyTakenView(),
+  '/provider/lead-taken': (_) => const LeadAlreadyTakenView(),
   LeadExpiredView.route: (_) => const LeadExpiredView(),
   LowWalletView.route: (_) => const LowWalletView(),
   AcceptedContactView.route: (_) => const AcceptedContactView(),

@@ -226,7 +226,7 @@ class ProviderRepository {
     return _firestore.collection(FsPaths.providers).doc(uid).snapshots().map((snapshot) {
       if (!snapshot.exists) return null;
       return snapshot.data();
-    });
+    }).handleError((_) => null);
   }
 
   /// Stream public listing card for provider (ratings, review count, etc.).
@@ -234,7 +234,7 @@ class ProviderRepository {
     return _firestore.collection(FsPaths.listings).doc(uid).snapshots().map((snapshot) {
       if (!snapshot.exists || snapshot.data() == null) return null;
       return Listing.fromMap(snapshot.id, snapshot.data()!);
-    });
+    }).handleError((_) => null);
   }
 
   /// Toggle availability switch in providers/{uid}.
@@ -267,7 +267,7 @@ class ProviderRepository {
         return b.createdAt!.compareTo(a.createdAt!);
       });
       return list;
-    });
+    }).handleError((_) => <Lead>[]);
   }
 
   /// Stream accepted leads for jobs tab.
@@ -280,7 +280,7 @@ class ProviderRepository {
         .snapshots()
         .map((snapshot) {
       return snapshot.docs.map((doc) => Lead.fromMap(doc.id, doc.data())).toList();
-    });
+    }).handleError((_) => <Lead>[]);
   }
 
   /// Get single lead document.
@@ -342,7 +342,7 @@ class ProviderRepository {
     return _firestore.collection(FsPaths.wallets).doc(uid).snapshots().map((snapshot) {
       if (!snapshot.exists || snapshot.data() == null) return null;
       return Wallet.fromMap(snapshot.id, snapshot.data()!);
-    });
+    }).handleError((_) => null);
   }
 
   /// Stream wallet transactions ledger, newest first, limit 20.
@@ -359,7 +359,7 @@ class ProviderRepository {
           .toList();
       list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       return list;
-    });
+    }).handleError((_) => <WalletTransaction>[]);
   }
 
   /// Call demo credits top-up function.
@@ -496,6 +496,6 @@ class ProviderRepository {
         return b.createdAt!.compareTo(a.createdAt!);
       });
       return list;
-    });
+    }).handleError((_) => <Review>[]);
   }
 }

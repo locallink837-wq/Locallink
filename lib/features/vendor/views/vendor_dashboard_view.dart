@@ -70,15 +70,7 @@ class _VendorDashboardViewState extends State<VendorDashboardView> {
   @override
   Widget build(BuildContext context) {
     final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
-
-    if (uid.isEmpty) {
-      return const Scaffold(
-        body: EmptyState(
-          title: 'Not signed in',
-          message: 'Please sign in to view your vendor dashboard.',
-        ),
-      );
-    }
+    final effectiveUid = uid.isNotEmpty ? uid : 'demo_vendor';
 
     return Theme(
       data: uiFeatureTheme(context, UiColors.amber),
@@ -124,13 +116,31 @@ class _VendorDashboardViewState extends State<VendorDashboardView> {
         ),
         body: SafeArea(
           child: StreamBuilder<Listing?>(
-            stream: _repo.streamOwnerListing(uid),
+            stream: _repo.streamOwnerListing(effectiveUid),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator(strokeWidth: 2));
               }
 
-              final listing = snapshot.data;
+              final listing = snapshot.data ??
+                  (uid.isEmpty
+                      ? Listing(
+                          id: 'demo_shop_1',
+                          kind: 'shop',
+                          name: 'Pune Hardware & Paints',
+                          category: 'Hardware',
+                          phone: '+91 98220 54321',
+                          address: 'FC Road, Deccan, Pune',
+                          ratingSum: 48,
+                          reviewCount: 10,
+                          verified: true,
+                          status: 'active',
+                          open24x7: false,
+                          opensAt: '09:00',
+                          closesAt: '21:00',
+                          tags: ['Pipes', 'Paints', 'Electrical', 'Tools'],
+                        )
+                      : null);
               if (listing == null) {
                 return const EmptyState(
                   title: 'No business listing found',

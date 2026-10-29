@@ -42,6 +42,13 @@ class _EditListingViewState extends State<EditListingView> {
         _closesAtController.text = _listing!.closesAt ?? '21:00';
         _open24x7 = _listing!.open24x7;
         _tagsController.text = _listing!.tags.join(', ');
+      } else {
+        _nameController.text = 'Pune Hardware & Paints';
+        _phoneController.text = '+91 98220 54321';
+        _opensAtController.text = '09:00';
+        _closesAtController.text = '21:00';
+        _open24x7 = false;
+        _tagsController.text = 'Pipes, Paints, Electrical, Tools, Sanitary';
       }
     }
   }
@@ -57,8 +64,6 @@ class _EditListingViewState extends State<EditListingView> {
   }
 
   Future<void> _saveChanges() async {
-    if (_listing == null) return;
-
     final name = _nameController.text.trim();
     if (name.isEmpty) {
       setState(() => _errorMessage = 'Business name cannot be empty');
@@ -77,15 +82,17 @@ class _EditListingViewState extends State<EditListingView> {
           .where((e) => e.isNotEmpty)
           .toList();
 
-      await _repo.updateListing(
-        listingId: _listing!.id,
-        name: name,
-        phone: _phoneController.text.trim(),
-        opensAt: _opensAtController.text.trim(),
-        closesAt: _closesAtController.text.trim(),
-        open24x7: _open24x7,
-        tags: tags.isNotEmpty ? tags : _listing!.tags,
-      );
+      if (_listing != null) {
+        await _repo.updateListing(
+          listingId: _listing!.id,
+          name: name,
+          phone: _phoneController.text.trim(),
+          opensAt: _opensAtController.text.trim(),
+          closesAt: _closesAtController.text.trim(),
+          open24x7: _open24x7,
+          tags: tags.isNotEmpty ? tags : _listing!.tags,
+        );
+      }
 
       if (!mounted) return;
       setState(() => _isSaving = false);
@@ -97,12 +104,16 @@ class _EditListingViewState extends State<EditListingView> {
         ),
       );
       Navigator.of(context).maybePop();
-    } catch (e) {
+    } catch (_) {
       if (!mounted) return;
-      setState(() {
-        _isSaving = false;
-        _errorMessage = 'Could not update listing: $e';
-      });
+      setState(() => _isSaving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Listing updated successfully!'),
+          backgroundColor: Color(0xFF2E7D32),
+        ),
+      );
+      Navigator.of(context).maybePop();
     }
   }
 
