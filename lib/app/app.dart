@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../core/config/env.dart';
 import '../core/localization/app_language.dart';
 import '../dev/dev_menu_view.dart';
 import 'routes.dart';
@@ -27,7 +28,7 @@ class LocaLinkApp extends StatelessWidget {
                 ...allRoutes,
                 DevMenuView.route: (_) => const DevMenuView(),
               },
-              initialRoute: DevMenuView.route,
+              initialRoute: Env.startWithDevMenu ? DevMenuView.route : '/auth/splash',
             );
           },
         );
