@@ -61,7 +61,7 @@ class _RegisterDetailsViewState extends State<RegisterDetailsView> {
     return Theme(
       data: uiFeatureTheme(context, UiColors.indigo),
       child: UiScaffold(
-        title: 'Register (2 of 4)',
+        title: 'Register (2 of 3)',
         bottomButton: UiMainButton(
           label: 'Next',
           onPressed: _onNext,
@@ -70,11 +70,11 @@ class _RegisterDetailsViewState extends State<RegisterDetailsView> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Stepper (2 of 4)
+              // Stepper (2 of 3)
               const UiStepper(
-                totalSteps: 4,
+                totalSteps: 3,
                 currentStep: 2,
-                stepLabels: ['Core', 'Details', 'Area', 'Docs'],
+                stepLabels: ['Core', 'Details', 'Location'],
               ),
               const SizedBox(height: 20),
 

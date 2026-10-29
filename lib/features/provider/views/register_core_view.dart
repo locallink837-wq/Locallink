@@ -102,7 +102,7 @@ class _RegisterCoreViewState extends State<RegisterCoreView> {
     return Theme(
       data: uiFeatureTheme(context, UiColors.indigo),
       child: UiScaffold(
-        title: 'Register (1 of 4)',
+        title: 'Register (1 of 3)',
         bottomButton: UiMainButton(
           label: 'Next',
           onPressed: _onNext,
@@ -111,11 +111,11 @@ class _RegisterCoreViewState extends State<RegisterCoreView> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Stepper indicator (1 of 4)
+              // Stepper indicator (1 of 3)
               const UiStepper(
-                totalSteps: 4,
+                totalSteps: 3,
                 currentStep: 1,
-                stepLabels: ['Core', 'Details', 'Area', 'Docs'],
+                stepLabels: ['Core', 'Details', 'Location'],
               ),
               const SizedBox(height: 20),
 

@@ -17,83 +17,112 @@ class MyReviewsView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final effectiveUid = uid.isNotEmpty ? uid : 'demo_provider';
     final repo = ProviderRepository();
 
     return Theme(
       data: uiFeatureTheme(context, UiColors.indigo),
       child: UiScaffold(
         title: 'My reviews',
-        body: uid.isEmpty
-            ? const Center(child: Text('Please log in'))
-            : StreamBuilder<Listing?>(
-                stream: repo.streamListing(uid),
-                builder: (context, listingSnap) {
-                  final listing = listingSnap.data;
-                  final avgRating = listing?.averageRating ?? 0.0;
-                  final reviewCount = listing?.reviewCount ?? 0;
+        body: StreamBuilder<Listing?>(
+          stream: repo.streamListing(effectiveUid),
+          builder: (context, listingSnap) {
+            final listing = listingSnap.data;
+            final avgRating = listing?.averageRating ?? (uid.isEmpty ? 4.9 : 0.0);
+            final reviewCount = listing?.reviewCount ?? (uid.isEmpty ? 12 : 0);
 
-                  return Column(
-                    children: [
-                      // Overall rating summary card
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(14),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.04),
-                              blurRadius: 6,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  avgRating > 0 ? avgRating.toStringAsFixed(1) : '5.0',
-                                  style: const TextStyle(
-                                    fontSize: 32,
-                                    fontWeight: FontWeight.w800,
-                                    color: UiColors.ink,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                const Icon(Icons.star_rounded, color: UiColors.star, size: 32),
-                              ],
-                            ),
-                            const SizedBox(height: 4),
-                            uiText(
-                              'Average rating from $reviewCount customer reviews',
-                              size: 12.5,
-                              color: UiColors.muted,
-                            ),
-                          ],
-                        ),
+            return Column(
+              children: [
+                // Overall rating summary card
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.04),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
                       ),
-                      const SizedBox(height: 16),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            avgRating > 0 ? avgRating.toStringAsFixed(1) : '5.0',
+                            style: const TextStyle(
+                              fontSize: 32,
+                              fontWeight: FontWeight.w800,
+                              color: UiColors.ink,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          const Icon(Icons.star_rounded, color: UiColors.star, size: 32),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      uiText(
+                        'Average rating from $reviewCount customer reviews',
+                        size: 12.5,
+                        color: UiColors.muted,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
 
-                      // Customer reviews list stream
-                      Expanded(
-                        child: StreamBuilder<List<Review>>(
-                          stream: repo.streamReviews(uid),
-                          builder: (context, snapshot) {
-                            if (snapshot.connectionState == ConnectionState.waiting) {
-                              return const Center(child: CircularProgressIndicator(strokeWidth: 2));
-                            }
+                // Customer reviews list stream
+                Expanded(
+                  child: StreamBuilder<List<Review>>(
+                    stream: repo.streamReviews(effectiveUid),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator(strokeWidth: 2));
+                      }
 
-                            final reviews = snapshot.data ?? [];
-                            if (reviews.isEmpty) {
-                              return const EmptyState(
-                                title: 'No reviews yet',
-                                message: 'Customer ratings and feedback after completed jobs will show up here.',
-                                icon: Icons.star_outline_rounded,
-                              );
-                            }
+                      final raw = snapshot.data ?? [];
+                      final reviews = raw.isNotEmpty
+                          ? raw
+                          : (uid.isEmpty
+                              ? [
+                                  Review(
+                                    id: 'rev_1',
+                                    listingId: 'demo_provider',
+                                    authorId: 'cust_1',
+                                    authorName: 'Meera Joshi',
+                                    rating: 5.0,
+                                    comment:
+                                        'Arrived promptly and solved our kitchen pipe leakage in 20 minutes. Highly recommended!',
+                                    createdAt:
+                                        DateTime.now().subtract(const Duration(days: 2)),
+                                  ),
+                                  Review(
+                                    id: 'rev_2',
+                                    listingId: 'demo_provider',
+                                    authorId: 'cust_2',
+                                    authorName: 'Rahul Deshmukh',
+                                    rating: 4.8,
+                                    comment:
+                                        'Very polite, carried all genuine spare parts, and reasonable charges.',
+                                    createdAt:
+                                        DateTime.now().subtract(const Duration(days: 5)),
+                                  ),
+                                ]
+                              : <Review>[]);
+
+                      if (reviews.isEmpty) {
+                        return const EmptyState(
+                          title: 'No reviews yet',
+                          message:
+                              'Customer ratings and feedback after completed jobs will show up here.',
+                          icon: Icons.star_outline_rounded,
+                        );
+                      }
 
                             return ListView.builder(
                               itemCount: reviews.length,

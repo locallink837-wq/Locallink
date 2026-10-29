@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -40,7 +39,7 @@ class _DocumentsStatusViewState extends State<DocumentsStatusView> {
           _statusMessage = null;
         });
 
-        final bytes = await File(picked.path).readAsBytes();
+        final bytes = await picked.readAsBytes();
         final path = await _repo.uploadDocument(
           uid: uid,
           bytes: bytes,

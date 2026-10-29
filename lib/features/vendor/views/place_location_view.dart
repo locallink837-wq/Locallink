@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import '../../../core/widgets/location_map_picker.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../data/vendor_repository.dart';
-import 'verification_status_view.dart';
+import '../../../app/shells/vendor_shell.dart';
 
 /// Screen 7.6: Place Location (2 of 2).
 /// Pins location of hospital, college, PG, or bank and commits registration atomically.
@@ -77,9 +77,8 @@ class _PlaceLocationViewState extends State<PlaceLocationView> {
       if (!mounted) return;
       Navigator.pushNamedAndRemoveUntil(
         context,
-        VerificationStatusView.route,
+        VendorShell.route,
         (route) => false,
-        arguments: {'listingId': listingId},
       );
     } catch (e) {
       if (!mounted) return;

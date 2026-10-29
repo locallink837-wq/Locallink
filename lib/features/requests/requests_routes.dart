@@ -13,12 +13,20 @@ import 'views/no_provider_found_view.dart';
 /// All routes of this feature. Only the owner (B) edits this file.
 final Map<String, WidgetBuilder> requestsRoutes = {
   RequestFormView.route: (_) => const RequestFormView(),
+  '/requests/form': (_) => const RequestFormView(),
   FindingProvidersView.route: (_) => const FindingProvidersView(),
+  '/requests/finding': (_) => const FindingProvidersView(),
   RequestAcceptedView.route: (_) => const RequestAcceptedView(),
+  '/requests/accepted': (_) => const RequestAcceptedView(),
   LiveTrackingView.route: (_) => const LiveTrackingView(),
+  '/requests/tracking': (_) => const LiveTrackingView(),
   ChatView.route: (_) => const ChatView(),
   JobDoneReviewView.route: (_) => const JobDoneReviewView(),
+  '/requests/review': (_) => const JobDoneReviewView(),
   RequestHistoryView.route: (_) => const RequestHistoryView(),
+  '/requests/history': (_) => const RequestHistoryView(),
   CancelSheetView.route: (_) => const CancelSheetView(),
+  '/requests/cancel': (_) => const CancelSheetView(),
   NoProviderFoundView.route: (_) => const NoProviderFoundView(),
+  '/requests/no-provider': (_) => const NoProviderFoundView(),
 };

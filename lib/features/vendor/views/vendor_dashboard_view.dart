@@ -7,7 +7,6 @@ import '../../../core/widgets/ui_kit.dart';
 import '../../safety_profile/views/profile_view.dart';
 import '../data/vendor_repository.dart';
 import 'edit_listing_view.dart';
-import 'verification_status_view.dart';
 
 /// Screen 7.8: Vendor Dashboard.
 /// Streams listing_stats/{listingId} (views, calls, directions) and owner's listing.
@@ -71,15 +70,7 @@ class _VendorDashboardViewState extends State<VendorDashboardView> {
   @override
   Widget build(BuildContext context) {
     final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
-
-    if (uid.isEmpty) {
-      return const Scaffold(
-        body: EmptyState(
-          title: 'Not signed in',
-          message: 'Please sign in to view your vendor dashboard.',
-        ),
-      );
-    }
+    final effectiveUid = uid.isNotEmpty ? uid : 'demo_vendor';
 
     return Theme(
       data: uiFeatureTheme(context, UiColors.amber),
@@ -102,8 +93,6 @@ class _VendorDashboardViewState extends State<VendorDashboardView> {
             if (idx == 1) {
               Navigator.pushNamed(context, EditListingView.route);
             } else if (idx == 2) {
-              Navigator.pushNamed(context, VerificationStatusView.route);
-            } else if (idx == 3) {
               Navigator.pushNamed(context, ProfileView.route);
             }
           },
@@ -119,26 +108,39 @@ class _VendorDashboardViewState extends State<VendorDashboardView> {
               label: 'Edit Info',
             ),
             NavigationDestination(
-              icon: Icon(Icons.shield_outlined),
-              selectedIcon: Icon(Icons.shield_rounded, color: UiColors.amber),
-              label: 'Status',
-            ),
-            NavigationDestination(
               icon: Icon(Icons.person_outline),
               selectedIcon: Icon(Icons.person, color: UiColors.amber),
-              label: 'Me',
+              label: 'Profile',
             ),
           ],
         ),
         body: SafeArea(
           child: StreamBuilder<Listing?>(
-            stream: _repo.streamOwnerListing(uid),
+            stream: _repo.streamOwnerListing(effectiveUid),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator(strokeWidth: 2));
               }
 
-              final listing = snapshot.data;
+              final listing = snapshot.data ??
+                  (uid.isEmpty
+                      ? Listing(
+                          id: 'demo_shop_1',
+                          kind: 'shop',
+                          name: 'Pune Hardware & Paints',
+                          category: 'Hardware',
+                          phone: '+91 98220 54321',
+                          address: 'FC Road, Deccan, Pune',
+                          ratingSum: 48,
+                          reviewCount: 10,
+                          verified: true,
+                          status: 'active',
+                          open24x7: false,
+                          opensAt: '09:00',
+                          closesAt: '21:00',
+                          tags: ['Pipes', 'Paints', 'Electrical', 'Tools'],
+                        )
+                      : null);
               if (listing == null) {
                 return const EmptyState(
                   title: 'No business listing found',

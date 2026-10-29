@@ -1,5 +1,5 @@
-import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -27,7 +27,7 @@ class _ClaimListingViewState extends State<ClaimListingView> {
 
   List<Listing> _unclaimedListings = [];
   Listing? _selectedListing;
-  File? _proofPhoto;
+  Uint8List? _proofBytes;
   bool _isLoading = false;
   bool _isSubmitting = false;
   String? _statusMessage;
@@ -70,8 +70,9 @@ class _ClaimListingViewState extends State<ClaimListingView> {
       );
 
       if (picked != null) {
+        final bytes = await picked.readAsBytes();
         setState(() {
-          _proofPhoto = File(picked.path);
+          _proofBytes = bytes;
           _errorMessage = null;
         });
       }
@@ -85,7 +86,7 @@ class _ClaimListingViewState extends State<ClaimListingView> {
       setState(() => _errorMessage = 'Please select a listing from the search results to claim.');
       return;
     }
-    if (_proofPhoto == null) {
+    if (_proofBytes == null) {
       setState(() => _errorMessage = 'Please upload a photo proof (business card, bill, or signboard).');
       return;
     }
@@ -103,7 +104,7 @@ class _ClaimListingViewState extends State<ClaimListingView> {
 
     try {
       final claimId = DateTime.now().millisecondsSinceEpoch.toString();
-      final bytes = await _proofPhoto!.readAsBytes();
+      final bytes = _proofBytes!;
 
       // Upload to private provider-docs bucket
       final evidencePath = await _repo.uploadClaimProof(
@@ -234,8 +235,8 @@ class _ClaimListingViewState extends State<ClaimListingView> {
               const SizedBox(height: 8),
 
               UiUploadCard(
-                label: _proofPhoto != null ? 'Proof photo selected' : 'Upload proof photo',
-                pickedFile: _proofPhoto,
+                label: _proofBytes != null ? 'Proof photo selected' : 'Upload proof photo',
+                pickedBytes: _proofBytes,
                 icon: Icons.verified_user_outlined,
                 onTap: _pickProofPhoto,
               ),

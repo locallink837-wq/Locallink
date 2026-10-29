@@ -32,12 +32,15 @@ final Map<String, WidgetBuilder> providerRoutes = {
   RegisterDocumentsView.route: (_) => const RegisterDocumentsView(),
   PendingView.route: (_) => const PendingView(),
   VerificationRejectedView.route: (_) => const VerificationRejectedView(),
+  '/provider/rejected': (_) => const VerificationRejectedView(),
 
   // Leads and job management (6.6 to 6.10 + outcome screens)
   LeadInboxView.route: (_) => const LeadInboxView(),
   LeadDetailView.route: (_) => const LeadDetailView(),
   ConfirmFeeSheetView.route: (_) => const ConfirmFeeSheetView(),
+  '/provider/confirm-fee': (_) => const ConfirmFeeSheetView(),
   LeadAlreadyTakenView.route: (_) => const LeadAlreadyTakenView(),
+  '/provider/lead-taken': (_) => const LeadAlreadyTakenView(),
   LeadExpiredView.route: (_) => const LeadExpiredView(),
   LowWalletView.route: (_) => const LowWalletView(),
   AcceptedContactView.route: (_) => const AcceptedContactView(),
@@ -46,7 +49,9 @@ final Map<String, WidgetBuilder> providerRoutes = {
   // Wallet, Dashboard, and Profile (6.11 to 6.13 + sub-screens)
   WalletView.route: (_) => const WalletView(),
   ProviderDashboardView.route: (_) => const ProviderDashboardView(),
+  '/provider/dashboard': (_) => const ProviderDashboardView(),
   ProviderProfileView.route: (_) => const ProviderProfileView(),
+  '/provider/profile': (_) => const ProviderProfileView(),
   EditServicesView.route: (_) => const EditServicesView(),
   ServiceAreaView.route: (_) => const ServiceAreaView(),
   DocumentsStatusView.route: (_) => const DocumentsStatusView(),

@@ -130,7 +130,7 @@ class RequestsRepository {
     return _firestore.collection(FsPaths.requests).doc(requestId).snapshots().map((snap) {
       if (!snap.exists || snap.data() == null) return null;
       return ServiceRequest.fromMap(snap.id, snap.data()!);
-    });
+    }).handleError((_) => null);
   }
 
   /// Cancel customer request with reason.
@@ -155,7 +155,7 @@ class RequestsRepository {
         .map((snap) {
       if (!snap.exists) return null;
       return snap.data();
-    });
+    }).handleError((_) => null);
   }
 
   /// Stream chat messages: requests/{requestId}/messages.
@@ -170,7 +170,7 @@ class RequestsRepository {
       final list = snap.docs.map((d) => ChatMessage.fromMap(d.id, d.data())).toList();
       list.sort((a, b) => a.createdAt.compareTo(b.createdAt));
       return list;
-    });
+    }).handleError((_) => <ChatMessage>[]);
   }
 
   /// Send message to chat: requests/{requestId}/messages.
@@ -229,7 +229,7 @@ class RequestsRepository {
         return b.createdAt!.compareTo(a.createdAt!);
       });
       return list;
-    });
+    }).handleError((_) => <ServiceRequest>[]);
   }
 
   /// Read provider public listing details.

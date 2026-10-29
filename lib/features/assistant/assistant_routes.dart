@@ -13,10 +13,13 @@ import 'views/task_detail_view.dart';
 /// All routes of this feature. Only the owner (A) edits this file.
 final Map<String, WidgetBuilder> assistantRoutes = {
   AssistantView.route: (_) => const AssistantView(),
+  '/assistant/chat': (_) => const AssistantView(),
   PhotoConsentView.route: (_) => const PhotoConsentView(),
   AiResultView.route: (_) => const AiResultView(),
   FollowUpQuestionView.route: (_) => const FollowUpQuestionView(),
+  '/assistant/follow-up': (_) => const FollowUpQuestionView(),
   AiUnavailableView.route: (_) => const AiUnavailableView(),
+  '/assistant/unavailable': (_) => const AiUnavailableView(),
   NewToCityFormView.route: (_) => const NewToCityFormView(),
   PlanLoadingView.route: (_) => const PlanLoadingView(),
   ChecklistView.route: (_) => const ChecklistView(),

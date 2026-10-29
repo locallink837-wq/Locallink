@@ -24,18 +24,33 @@ class _LanguageViewState extends State<LanguageView> {
     ('mr', 'Marathi', 'मराठी'),
   ];
 
-  String _selected = AuthFlow.language;
+  late String _selected;
+
+  @override
+  void initState() {
+    super.initState();
+    _selected = AppLanguage.instance.code;
+  }
+
+  void _choose(String code) {
+    setState(() => _selected = code);
+    AuthFlow.language = code;
+    AppLanguage.instance.setLanguage(code);
+  }
 
   @override
   Widget build(BuildContext context) {
     return Theme(
       data: uiFeatureTheme(context, UiColors.teal),
       child: UiScaffold(
-        title: 'Choose language',
+        title: AppLanguage.t('choose_language', defaultText: 'Choose language'),
         body: ListView(
           children: [
             uiText(
-              'You can change this later in Settings.',
+              AppLanguage.t(
+                'change_later_settings',
+                defaultText: 'You can change this later in Settings.',
+              ),
               size: 12.5,
               weight: FontWeight.w500,
               color: UiColors.muted,
@@ -46,12 +61,12 @@ class _LanguageViewState extends State<LanguageView> {
                 name: l.$2,
                 native: l.$3,
                 selected: _selected == l.$1,
-                onTap: () => setState(() => _selected = l.$1),
+                onTap: () => _choose(l.$1),
               ),
           ],
         ),
         bottomButton: UiMainButton(
-          label: 'Continue',
+          label: AppLanguage.t('continue', defaultText: 'Continue'),
           onPressed: () {
             AuthFlow.language = _selected;
             AppLanguage.instance.setLanguage(_selected);

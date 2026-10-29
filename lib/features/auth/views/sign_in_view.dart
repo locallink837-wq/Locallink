@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/localization/app_language.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../data/auth_repository.dart';
 import '../state/auth_flow.dart';
@@ -65,29 +66,35 @@ class _SignInViewState extends State<SignInView> with GoogleAuthMixin<SignInView
     return Theme(
       data: uiFeatureTheme(context, UiColors.teal),
       child: UiScaffold(
-        title: _isLogin ? 'Log in' : 'Sign up',
+        title: _isLogin
+            ? AppLanguage.t('sign_in', defaultText: 'Log in')
+            : AppLanguage.t('sign_up', defaultText: 'Sign up'),
         body: SingleChildScrollView(
           child: Column(
             children: [
               const SizedBox(height: 12),
               AuthHero(
                 icon: _isLogin ? Icons.lock_open_rounded : Icons.person_add_alt_1_rounded,
-                title: _isLogin ? 'Welcome back' : 'Create your account',
+                title: _isLogin
+                    ? AppLanguage.t('welcome_back', defaultText: 'Welcome back')
+                    : AppLanguage.t('create_account', defaultText: 'Create your account'),
                 subtitle: _isLogin
                     ? 'Log in to continue with LocaLink.'
-                    : (role != null ? 'Signing up as ${role.displayName}' : 'Sign up to continue.'),
+                    : (role != null
+                        ? '${AppLanguage.t('signing_up_as', defaultText: 'Signing up as')} ${AppLanguage.t(role.name.toString(), defaultText: role.displayName)}'
+                        : 'Sign up to continue.'),
               ),
               AuthErrorBanner(authError),
               const SizedBox(height: 28),
               UiMainButton(
-                label: 'Continue with Google',
+                label: AppLanguage.t('continue_google', defaultText: 'Continue with Google'),
                 icon: Icons.login_rounded,
                 isLoading: googleLoading,
                 onPressed: busy ? null : continueWithGoogle,
               ),
               const SizedBox(height: 10),
               UiGhostButton(
-                label: 'Use email',
+                label: AppLanguage.t('or_with_email', defaultText: 'Use email'),
                 icon: Icons.mail_outline_rounded,
                 onPressed: busy ? null : _openEmailSheet,
               ),
@@ -107,7 +114,9 @@ class _SignInViewState extends State<SignInView> with GoogleAuthMixin<SignInView
                 child: Padding(
                   padding: const EdgeInsets.all(8),
                   child: uiText(
-                    _isLogin ? 'New here? Create account' : 'Already registered? Log in',
+                    _isLogin
+                        ? AppLanguage.t('dont_have_account', defaultText: 'New here? Create account')
+                        : AppLanguage.t('already_have_account', defaultText: 'Already registered? Log in'),
                     size: 13,
                     weight: FontWeight.w700,
                     color: UiColors.muted,

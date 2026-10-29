@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/constants/enums.dart';
+import '../../../core/localization/app_language.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../data/auth_repository.dart';
 import '../state/auth_flow.dart';
@@ -24,12 +25,38 @@ class _RoleChoiceViewState extends State<RoleChoiceView> {
   UserRole? _selected;
   bool _busy = false;
 
-  static const _info = <UserRole, (IconData icon, String hint, Color color)>{
-    UserRole.customer: (Icons.person_rounded, 'Find services, places and shops', UiColors.teal),
-    UserRole.provider: (Icons.handyman_rounded, 'Get job requests near you', UiColors.indigo),
-    UserRole.shopOwner: (Icons.storefront_rounded, 'List your shop', UiColors.amber),
-    UserRole.placeOwner: (Icons.apartment_rounded, 'List your place', UiColors.amber),
+  static const _info = <UserRole, (IconData icon, Color color)>{
+    UserRole.customer: (Icons.person_rounded, UiColors.teal),
+    UserRole.provider: (Icons.handyman_rounded, UiColors.indigo),
+    UserRole.shopOwner: (Icons.storefront_rounded, UiColors.amber),
+    UserRole.placeOwner: (Icons.apartment_rounded, UiColors.amber),
   };
+
+  String _roleLabel(UserRole r) {
+    switch (r) {
+      case UserRole.customer:
+        return AppLanguage.t('customer', defaultText: 'Customer');
+      case UserRole.provider:
+        return AppLanguage.t('provider', defaultText: 'Service provider');
+      case UserRole.shopOwner:
+        return AppLanguage.t('shop_owner', defaultText: 'Shop owner');
+      case UserRole.placeOwner:
+        return AppLanguage.t('place_owner', defaultText: 'Place owner');
+    }
+  }
+
+  String _roleHint(UserRole r) {
+    switch (r) {
+      case UserRole.customer:
+        return AppLanguage.t('customer_hint', defaultText: 'Find services, places and shops');
+      case UserRole.provider:
+        return AppLanguage.t('provider_hint', defaultText: 'Get job requests near you');
+      case UserRole.shopOwner:
+        return AppLanguage.t('shop_owner_hint', defaultText: 'List your shop');
+      case UserRole.placeOwner:
+        return AppLanguage.t('place_owner_hint', defaultText: 'List your place');
+    }
+  }
 
   Future<void> _continue({required bool login}) async {
     final role = _selected ?? (login ? UserRole.customer : null);
@@ -60,13 +87,16 @@ class _RoleChoiceViewState extends State<RoleChoiceView> {
     return Theme(
       data: uiFeatureTheme(context, UiColors.teal),
       child: UiScaffold(
-        title: 'I am a',
+        title: AppLanguage.t('i_am_a', defaultText: 'I am a'),
         body: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               uiText(
-                'Pick what describes you best. You can use only one role per account.',
+                AppLanguage.t(
+                  'pick_role_desc',
+                  defaultText: 'Pick what describes you best. You can use only one role per account.',
+                ),
                 size: 12.5,
                 weight: FontWeight.w500,
                 color: UiColors.muted,
@@ -82,10 +112,10 @@ class _RoleChoiceViewState extends State<RoleChoiceView> {
                 children: [
                   for (final role in UserRole.values)
                     _RoleTile(
-                      label: role.displayName,
-                      hint: _info[role]!.$2,
+                      label: _roleLabel(role),
+                      hint: _roleHint(role),
                       icon: _info[role]!.$1,
-                      color: _info[role]!.$3,
+                      color: _info[role]!.$2,
                       selected: _selected == role,
                       onTap: () => setState(() => _selected = role),
                     ),
@@ -98,13 +128,13 @@ class _RoleChoiceViewState extends State<RoleChoiceView> {
           mainAxisSize: MainAxisSize.min,
           children: [
             UiMainButton(
-              label: 'Continue',
+              label: AppLanguage.t('continue', defaultText: 'Continue'),
               isLoading: _busy,
               onPressed: _selected == null ? null : () => _continue(login: false),
             ),
             const SizedBox(height: 10),
             UiGhostButton(
-              label: 'I already have an account',
+              label: AppLanguage.t('already_have_account', defaultText: 'I already have an account'),
               onPressed: _busy ? null : () => _continue(login: true),
             ),
           ],

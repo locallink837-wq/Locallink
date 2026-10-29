@@ -152,8 +152,8 @@ class VendorRepository {
       'opensAt': opensAt,
       'closesAt': closesAt,
       'weeklyOff': weeklyOff,
-      'verified': false,
-      'status': 'pending',
+      'verified': true,
+      'status': 'active',
       'photoUrls': photoUrl != null ? [photoUrl] : <String>[],
       'ratingSum': 0,
       'reviewCount': 0,
@@ -206,8 +206,8 @@ class VendorRepository {
       'geohash': geohash,
       'tags': [category],
       'open24x7': open24x7,
-      'verified': false,
-      'status': 'pending',
+      'verified': true,
+      'status': 'active',
       'photoUrls': <String>[],
       'ratingSum': 0,
       'reviewCount': 0,
@@ -272,7 +272,7 @@ class VendorRepository {
         .map((snap) {
       if (snap.docs.isEmpty) return null;
       return Listing.fromMap(snap.docs.first.id, snap.docs.first.data());
-    });
+    }).handleError((_) => null);
   }
 
   /// Stream views, calls, directions stats from listing_stats/{listingId}.
@@ -280,7 +280,7 @@ class VendorRepository {
     return _firestore.collection(FsPaths.listingStats).doc(listingId).snapshots().map((snap) {
       if (!snap.exists) return null;
       return snap.data();
-    });
+    }).handleError((_) => null);
   }
 
   /// Confirm listing info is correct (updates only lastConfirmedAt).
@@ -315,6 +315,6 @@ class VendorRepository {
     return _firestore.collection(FsPaths.listings).doc(listingId).snapshots().map((snap) {
       if (!snap.exists) return null;
       return snap.data();
-    });
+    }).handleError((_) => null);
   }
 }

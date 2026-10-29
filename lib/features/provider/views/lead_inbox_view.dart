@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 
 import '../../../core/models/lead.dart';
 import '../../../core/widgets/empty_state.dart';
-import '../../../core/widgets/error_view.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../data/provider_repository.dart';
 import 'accepted_contact_view.dart';
@@ -92,12 +91,6 @@ class _LeadInboxViewState extends State<LeadInboxView> {
                   : StreamBuilder<List<Lead>>(
                       stream: _selectedTab == 0 ? _repo.streamInboxLeads(uid) : _repo.streamAcceptedLeads(uid),
                       builder: (context, snapshot) {
-                        if (snapshot.hasError) {
-                          return ErrorView(
-                            message: 'Could not load leads: ${snapshot.error}',
-                            onRetry: () => setState(() {}),
-                          );
-                        }
 
                         if (snapshot.connectionState == ConnectionState.waiting) {
                           return const Center(

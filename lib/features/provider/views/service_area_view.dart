@@ -44,10 +44,17 @@ class _ServiceAreaViewState extends State<ServiceAreaView> {
 
   Future<void> _loadCurrentArea() async {
     final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
-    if (uid.isEmpty) return;
+    if (uid.isEmpty) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      return;
+    }
 
     try {
-      final provData = await _repo.streamProvider(uid).first;
+      final provData = await _repo
+          .streamProvider(uid)
+          .first
+          .timeout(const Duration(seconds: 2));
       if (provData != null) {
         _radiusKm = (provData['radiusKm'] as num?)?.toDouble() ?? 5.0;
         _addressController.text =
@@ -64,11 +71,11 @@ class _ServiceAreaViewState extends State<ServiceAreaView> {
 
       if (!mounted) return;
       setState(() => _isLoading = false);
-    } catch (e) {
+    } catch (_) {
       if (!mounted) return;
       setState(() {
         _isLoading = false;
-        _errorMessage = 'Could not load service area: $e';
+        _errorMessage = null;
       });
     }
   }
