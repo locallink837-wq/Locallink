@@ -124,8 +124,9 @@ class AuthRepository {
       final credential = GoogleAuthProvider.credential(idToken: idToken);
       final result = await _auth.signInWithCredential(credential);
       final user = result.user;
-      if (user == null)
+      if (user == null) {
         throw const AuthFailure('Login failed. Please try again.');
+      }
       return user;
     } on GoogleSignInException catch (e) {
       if (e.code == GoogleSignInExceptionCode.canceled) {
@@ -294,8 +295,8 @@ class AuthRepository {
   }) {
     return updateProfile(uid, {
       if (area != null && area.trim().isNotEmpty) 'area': area.trim(),
-      if (lat != null) 'lat': lat,
-      if (lng != null) 'lng': lng,
+      'lat': ?lat,
+      'lng': ?lng,
       'locationUpdatedAt': FieldValue.serverTimestamp(),
     });
   }
@@ -341,8 +342,9 @@ class AuthRepository {
       case UserRole.provider:
         try {
           final snap = await _db.collection(FsPaths.providers).doc(u.uid).get();
-          if (!snap.exists)
+          if (!snap.exists) {
             return const AuthDestination(AuthTargets.providerRegister);
+          }
           final data = snap.data() ?? {};
           final status = (data['verificationStatus'] ?? 'draft')
               .toString()
@@ -449,8 +451,9 @@ class AuthRepository {
       if (e.code == 'permission-denied') {
         return 'You do not have permission to do that. Please log in again.';
       }
-      if (e.code == 'unavailable')
+      if (e.code == 'unavailable') {
         return 'No internet connection. Please try again.';
+      }
     }
     return 'Something went wrong. Please try again.';
   }

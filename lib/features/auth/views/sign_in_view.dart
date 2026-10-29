@@ -184,12 +184,16 @@ class _EmailSheetState extends State<_EmailSheet> {
     }
     try {
       await widget.repo.sendPasswordReset(email);
-      if (mounted) setState(() {
-        _error = null;
-        _info = 'Password reset link sent to $email.';
-      });
+      if (mounted) {
+        setState(() {
+          _error = null;
+          _info = 'Password reset link sent to $email.';
+        });
+      }
     } catch (e) {
-      if (mounted) setState(() => _error = AuthRepository.friendlyError(e));
+      if (mounted) {
+        setState(() => _error = AuthRepository.friendlyError(e));
+      }
     }
   }
 

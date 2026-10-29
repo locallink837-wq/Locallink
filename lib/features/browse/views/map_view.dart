@@ -860,8 +860,9 @@ class _MapViewState extends State<MapView> {
     final cat = category.toLowerCase();
     if (cat.contains('electric')) return Icons.bolt;
     if (cat.contains('plumb')) return Icons.build;
-    if (cat.contains('hospital') || cat.contains('pharmacy'))
+    if (cat.contains('hospital') || cat.contains('pharmacy')) {
       return Icons.local_hospital;
+    }
     if (cat.contains('college')) return Icons.school;
     if (cat.contains('shop') || cat.contains('market')) return Icons.storefront;
     return Icons.place;
