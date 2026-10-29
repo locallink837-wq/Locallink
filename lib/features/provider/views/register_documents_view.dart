@@ -1,5 +1,5 @@
-import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -22,8 +22,8 @@ class _RegisterDocumentsViewState extends State<RegisterDocumentsView> {
   final _picker = ImagePicker();
   final _repo = ProviderRepository();
 
-  File? _idProofFile;
-  File? _selfieFile;
+  Uint8List? _idProofBytes;
+  Uint8List? _selfieBytes;
   bool _isSubmitting = false;
   String? _errorMessage;
 
@@ -37,10 +37,9 @@ class _RegisterDocumentsViewState extends State<RegisterDocumentsView> {
       );
 
       if (picked != null) {
-        final file = File(picked.path);
+        final bytes = await picked.readAsBytes();
         // Ensure file size is below 5 MB
-        final sizeBytes = await file.length();
-        if (sizeBytes > 5 * 1024 * 1024) {
+        if (bytes.length > 5 * 1024 * 1024) {
           if (!mounted) return;
           setState(() => _errorMessage = 'Image size must be less than 5 MB');
           return;
@@ -49,9 +48,9 @@ class _RegisterDocumentsViewState extends State<RegisterDocumentsView> {
         if (!mounted) return;
         setState(() {
           if (isIdProof) {
-            _idProofFile = file;
+            _idProofBytes = bytes;
           } else {
-            _selfieFile = file;
+            _selfieBytes = bytes;
           }
           _errorMessage = null;
         });
@@ -94,11 +93,11 @@ class _RegisterDocumentsViewState extends State<RegisterDocumentsView> {
   }
 
   Future<void> _onSubmit() async {
-    if (_idProofFile == null) {
+    if (_idProofBytes == null) {
       setState(() => _errorMessage = 'Please upload a photo of your ID proof (Aadhaar / Voter ID / PAN)');
       return;
     }
-    if (_selfieFile == null) {
+    if (_selfieBytes == null) {
       setState(() => _errorMessage = 'Please take a clear selfie for identity verification');
       return;
     }
@@ -119,7 +118,7 @@ class _RegisterDocumentsViewState extends State<RegisterDocumentsView> {
       final args = (ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?) ?? {};
 
       // 1. Upload ID Proof to Supabase provider-docs
-      final idBytes = await _idProofFile!.readAsBytes();
+      final idBytes = _idProofBytes!;
       final idProofPath = await _repo.uploadDocument(
         uid: uid,
         bytes: idBytes,
@@ -131,7 +130,7 @@ class _RegisterDocumentsViewState extends State<RegisterDocumentsView> {
       }
 
       // 2. Upload Selfie to Supabase provider-docs
-      final selfieBytes = await _selfieFile!.readAsBytes();
+      final selfieBytes = _selfieBytes!;
       final selfiePath = await _repo.uploadDocument(
         uid: uid,
         bytes: selfieBytes,
@@ -206,8 +205,8 @@ class _RegisterDocumentsViewState extends State<RegisterDocumentsView> {
               uiText('Aadhaar Card, Voter Card, Driving License, or PAN', size: 11.5, color: UiColors.muted),
               const SizedBox(height: 8),
               UiUploadCard(
-                label: _idProofFile != null ? 'ID Photo selected' : 'Upload ID Proof',
-                pickedFile: _idProofFile,
+                label: _idProofBytes != null ? 'ID Photo selected' : 'Upload ID Proof',
+                pickedBytes: _idProofBytes,
                 icon: Icons.badge_outlined,
                 onTap: () => _showPickerSheet(isIdProof: true),
               ),
@@ -219,8 +218,8 @@ class _RegisterDocumentsViewState extends State<RegisterDocumentsView> {
               uiText('Take a clear front-facing photo of your face', size: 11.5, color: UiColors.muted),
               const SizedBox(height: 8),
               UiUploadCard(
-                label: _selfieFile != null ? 'Selfie selected' : 'Take Selfie',
-                pickedFile: _selfieFile,
+                label: _selfieBytes != null ? 'Selfie selected' : 'Take Selfie',
+                pickedBytes: _selfieBytes,
                 icon: Icons.face_rounded,
                 onTap: () => _showPickerSheet(isIdProof: false),
               ),
