@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:typed_data';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -26,7 +25,6 @@ class _ShopHoursPhotoViewState extends State<ShopHoursPhotoView> {
   final _picker = ImagePicker();
 
   bool _open24x7 = false;
-  File? _pickedPhoto;
   Uint8List? _photoBytes;
   bool _isUploading = false;
   String? _uploadedPhotoUrl;
@@ -51,7 +49,6 @@ class _ShopHoursPhotoViewState extends State<ShopHoursPhotoView> {
         final bytes = await picked.readAsBytes();
         setState(() {
           _photoBytes = bytes;
-          _pickedPhoto = File(picked.path);
           _errorMessage = null;
         });
       }

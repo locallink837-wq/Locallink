@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:typed_data';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -29,7 +28,6 @@ class _RequestFormViewState extends State<RequestFormView> {
 
   String _category = 'Plumber';
   Urgency _urgency = Urgency.now;
-  File? _pickedPhoto;
   Uint8List? _photoBytes;
   String? _photoUrl;
   bool _isSubmitting = false;
@@ -71,7 +69,6 @@ class _RequestFormViewState extends State<RequestFormView> {
         setState(() {
           _photoBytes = bytes;
           _photoUrl = null;
-          _pickedPhoto = File(picked.path);
         });
       }
     } catch (_) {}
@@ -100,7 +97,6 @@ class _RequestFormViewState extends State<RequestFormView> {
       setState(() {
         _photoUrl = url;
         _photoBytes = null;
-        _pickedPhoto = null;
       });
     }
   }

@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:geocoding/geocoding.dart';
-import 'package:geolocator/geolocator.dart';
 
 import '../../../core/widgets/location_map_picker.dart';
 import '../../../core/widgets/ui_kit.dart';
@@ -93,7 +91,6 @@ class _ShopLocationViewState extends State<ShopLocationView> {
                   setState(() {
                     _latitude = data.latitude;
                     _longitude = data.longitude;
-                    _hasLocation = true;
                     _addressController.text = data.address;
                   });
                 },

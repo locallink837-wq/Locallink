@@ -1,7 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:geocoding/geocoding.dart';
-import 'package:geolocator/geolocator.dart';
 
 import '../../../core/widgets/location_map_picker.dart';
 import '../../../core/widgets/ui_kit.dart';
@@ -130,7 +128,6 @@ class _PlaceLocationViewState extends State<PlaceLocationView> {
                   setState(() {
                     _latitude = data.latitude;
                     _longitude = data.longitude;
-                    _hasLocation = true;
                     _addressController.text = data.address;
                   });
                 },

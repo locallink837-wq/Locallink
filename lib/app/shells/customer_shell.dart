@@ -14,14 +14,14 @@ class CustomerShell extends StatefulWidget {
   const CustomerShell({super.key});
   static const route = '/shell/customer';
 
-  static _CustomerShellState? of(BuildContext context) =>
-      context.findAncestorStateOfType<_CustomerShellState>();
+  static CustomerShellState? of(BuildContext context) =>
+      context.findAncestorStateOfType<CustomerShellState>();
 
   @override
-  State<CustomerShell> createState() => _CustomerShellState();
+  State<CustomerShell> createState() => CustomerShellState();
 }
 
-class _CustomerShellState extends State<CustomerShell> {
+class CustomerShellState extends State<CustomerShell> {
   int _index = 0;
 
   void setTab(int index) {
