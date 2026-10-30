@@ -173,9 +173,31 @@ class _EmailSheetState extends State<_EmailSheet> {
     });
     try {
       if (widget.isLogin) {
-        await widget.repo.signInWithEmail(email, password);
+        try {
+          await widget.repo.signInWithEmail(email, password);
+        } catch (e) {
+          final errStr = e.toString().toLowerCase();
+          if (errStr.contains('user-not-found') || errStr.contains('invalid-credential')) {
+            try {
+              await widget.repo.registerWithEmail(email, password);
+            } catch (_) {
+              rethrow;
+            }
+          } else {
+            rethrow;
+          }
+        }
       } else {
-        await widget.repo.registerWithEmail(email, password);
+        try {
+          await widget.repo.registerWithEmail(email, password);
+        } catch (e) {
+          final errStr = e.toString().toLowerCase();
+          if (errStr.contains('email-already-in-use') || errStr.contains('already registered')) {
+            await widget.repo.signInWithEmail(email, password);
+          } else {
+            rethrow;
+          }
+        }
       }
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
