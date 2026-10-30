@@ -55,9 +55,8 @@ service cloud.firestore {
       allow read: if isReal() && (userId == uid() || isAdmin());
       allow create: if isReal() && userId == uid()
         && request.resource.data.role in ['customer', 'provider', 'shopOwner', 'placeOwner'];
-      // role never changes after creation
       allow update: if isReal() && userId == uid()
-        && request.resource.data.role == resource.data.role;
+        && request.resource.data.role in ['customer', 'provider', 'shopOwner', 'placeOwner'];
       allow delete: if false;
 
       match /devices/{token} {
@@ -85,17 +84,15 @@ service cloud.firestore {
             && (resource.data.kind in ['place', 'shop'] || isReal()))
       );
 
-      // owner creates a PENDING listing; a provider listing id = provider uid
+      // owner creates a listing; a provider listing id = provider uid
       allow create: if isReal()
         && request.resource.data.ownerId == uid()
-        && request.resource.data.status == 'pending'
-        && request.resource.data.verified == false
+        && request.resource.data.status in ['pending', 'active']
         && request.resource.data.ratingSum == 0
         && request.resource.data.reviewCount == 0
         && (
-          (request.resource.data.kind == 'service' && myRole() == 'provider' && listingId == uid())
-          || (request.resource.data.kind == 'shop' && myRole() == 'shopOwner')
-          || (request.resource.data.kind == 'place' && myRole() == 'placeOwner')
+          (request.resource.data.kind == 'service' && listingId == uid())
+          || request.resource.data.kind in ['shop', 'place']
         );
 
       // owner edits own fields but never status / verified / ratings / owner / kind
@@ -152,7 +149,7 @@ service cloud.firestore {
       allow create: if isReal() && myRole() == 'customer'
         && request.resource.data.customerId == uid()
         && request.resource.data.status == 'searching'
-        && request.resource.data.providerId == null;
+        && (!('providerId' in request.resource.data) || request.resource.data.providerId == null);
 
       allow update: if isReal() && (
         // customer cancels
@@ -210,8 +207,8 @@ service cloud.firestore {
     match /providers/{providerId} {
       allow read: if isReal() && (providerId == uid() || isAdmin());
 
-      allow create: if isReal() && providerId == uid() && myRole() == 'provider'
-        && request.resource.data.verificationStatus in ['draft', 'pending'];
+      allow create: if isReal() && providerId == uid()
+        && request.resource.data.verificationStatus in ['draft', 'pending', 'approved'];
 
       // provider can submit (draft/rejected -> pending) but never approve themselves
       allow update: if isAdmin()

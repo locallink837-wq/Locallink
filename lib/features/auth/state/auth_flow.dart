@@ -78,9 +78,8 @@ class AuthFlow {
 
     // Grab these before awaiting so we never touch a stale context.
     final nav = Navigator.of(context);
-    final messenger = ScaffoldMessenger.of(context);
 
-    final profile = await repo.fetchProfile(user.uid);
+    var profile = await repo.fetchProfile(user.uid);
 
     // Existing account: the stored role always wins (role never changes).
     if (profile != null) {
@@ -92,27 +91,13 @@ class AuthFlow {
       return;
     }
 
-    // "Log in" but no account exists yet.
-    if (mode == AuthMode.login && !isInline) {
-      mode = AuthMode.register;
-      messenger.showSnackBar(const SnackBar(
-        content: Text('No LocaLink account found. Choose a role to create one.'),
-      ));
-      nav.pushNamed(AuthTargets.roleChoice);
-      return;
-    }
-
-    // New account.
+    // New account: auto-create profile document in Firestore immediately with role
     final r = role ?? UserRole.customer;
-    if (r == UserRole.customer) {
-      nav.pushNamed(AuthTargets.customerInfo); // profile is created there
-      return;
-    }
-
     final fallbackName = (user.displayName?.trim().isNotEmpty ?? false)
         ? user.displayName!.trim()
-        : (user.email?.split('@').first ?? '');
-    await repo.createProfile(
+        : (user.email?.split('@').first ?? 'User');
+
+    profile = await repo.createProfile(
       uid: user.uid,
       role: r,
       name: fallbackName,
@@ -120,7 +105,19 @@ class AuthFlow {
       email: user.email ?? '',
       language: language,
       photoUrl: user.photoURL ?? '',
+      onboardingDone: true,
     );
+
+    if (isInline) {
+      returnToApp(nav);
+      return;
+    }
+
+    if (r == UserRole.customer) {
+      await _goHome(nav, repo, profile);
+      return;
+    }
+
     nav.pushNamedAndRemoveUntil(repo.roleFormRoute(r), (_) => false);
   }
 
