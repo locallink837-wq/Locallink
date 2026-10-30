@@ -25,7 +25,13 @@ mixin GoogleAuthMixin<T extends StatefulWidget> on State<T> {
       if (!mounted) return;
       await AuthFlow.afterSignIn(context, authRepo);
     } on AuthFailure catch (e) {
-      if (mounted && !e.cancelled) onAuthError(e.message);
+      if (mounted) {
+        if (e.cancelled) {
+          onAuthError('Google sign-in was closed or blocked by browser. Please allow popups.');
+        } else {
+          onAuthError(e.message);
+        }
+      }
     } catch (e) {
       if (mounted) onAuthError(AuthRepository.friendlyError(e));
     } finally {

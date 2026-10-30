@@ -89,6 +89,19 @@ class RequestsRepository {
     required String exactAddress,
     required String urgency, // 'now' | 'today' | 'schedule' | 'sos'
   }) async {
+    // Ensure customer doc exists with role == 'customer' so Firestore security rules pass
+    final userRef = _firestore.collection(FsPaths.users).doc(customerId);
+    final userDoc = await userRef.get();
+    if (!userDoc.exists) {
+      await userRef.set({
+        'role': 'customer',
+        'name': customerName,
+        'phone': customerPhone,
+        'onboardingDone': true,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    }
+
     final batch = _firestore.batch();
     final now = FieldValue.serverTimestamp();
     final geoPoint = GeoPoint(latitude, longitude);
@@ -98,6 +111,7 @@ class RequestsRepository {
     batch.set(reqRef, {
       'customerId': customerId,
       'customerName': customerName,
+      'providerId': null,
       'category': category,
       'description': description,
       'photoUrls': photoUrls,

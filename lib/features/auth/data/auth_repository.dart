@@ -450,7 +450,7 @@ class AuthRepository {
         case 'unauthorized-domain':
           return 'This domain is not authorized in Firebase Auth. Please check authorized domains in Firebase Console.';
         case 'operation-not-allowed':
-          return 'Google sign-in is not enabled in Firebase Console. Please enable it under Authentication > Sign-in method.';
+          return 'This sign-in method is not enabled in Firebase Console. Please enable it under Authentication > Sign-in method.';
         case 'account-exists-with-different-credential':
           return 'This email is registered with another login method.';
         default:

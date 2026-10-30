@@ -105,6 +105,23 @@ class AuthFlow {
     // New account.
     final r = role ?? UserRole.customer;
     if (r == UserRole.customer) {
+      if (isInline) {
+        final fallbackName = (user.displayName?.trim().isNotEmpty ?? false)
+            ? user.displayName!.trim()
+            : (user.email?.split('@').first ?? 'Customer');
+        await repo.createProfile(
+          uid: user.uid,
+          role: UserRole.customer,
+          name: fallbackName,
+          phone: user.phoneNumber ?? '',
+          email: user.email ?? '',
+          language: language,
+          photoUrl: user.photoURL ?? '',
+          onboardingDone: true,
+        );
+        returnToApp(nav);
+        return;
+      }
       nav.pushNamed(AuthTargets.customerInfo); // profile is created there
       return;
     }
