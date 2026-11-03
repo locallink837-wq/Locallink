@@ -52,9 +52,20 @@ class Listing {
 
   ListingKind get parsedKind => enumFromName(ListingKind.values, kind, ListingKind.shop);
 
-  bool get isService => kind == 'service';
-  bool get isPlace => kind == 'place';
-  bool get isShop => kind == 'shop';
+  bool get isService {
+    final k = kind.toLowerCase().trim();
+    return k == 'service' || k == 'services' || k == 'provider';
+  }
+
+  bool get isPlace {
+    final k = kind.toLowerCase().trim();
+    return k == 'place' || k == 'places';
+  }
+
+  bool get isShop {
+    final k = kind.toLowerCase().trim();
+    return k == 'shop' || k == 'shops' || k == 'vendor';
+  }
 
   /// Determines whether this establishment is currently open based on local system time.
   bool get isOpenNow {
@@ -84,42 +95,85 @@ class Listing {
   factory Listing.fromMap(String id, Map<String, dynamic> m) {
     double? lat;
     double? lng;
+
+    final rawLat = m['latitude'];
+    final rawLng = m['longitude'];
+    if (rawLat is num) lat = rawLat.toDouble();
+    if (rawLng is num) lng = rawLng.toDouble();
+
     final rawLoc = m['location'];
     if (rawLoc != null) {
       if (rawLoc is Map) {
-        lat = (rawLoc['lat'] ?? rawLoc['latitude']) as double?;
-        lng = (rawLoc['lng'] ?? rawLoc['longitude']) as double?;
+        final mLat = rawLoc['lat'] ?? rawLoc['latitude'];
+        final mLng = rawLoc['lng'] ?? rawLoc['longitude'];
+        if (mLat is num) lat ??= mLat.toDouble();
+        if (mLng is num) lng ??= mLng.toDouble();
       } else {
-        // Firestore GeoPoint
         try {
-          lat = (rawLoc.latitude as num?)?.toDouble();
-          lng = (rawLoc.longitude as num?)?.toDouble();
+          lat ??= (rawLoc.latitude as num?)?.toDouble();
+          lng ??= (rawLoc.longitude as num?)?.toDouble();
         } catch (_) {}
       }
     }
 
+    List<String> parseStringList(dynamic v) {
+      if (v is List) {
+        return v.map((e) => e?.toString() ?? '').where((s) => s.isNotEmpty).toList();
+      }
+      return const [];
+    }
+
+    List<int> parseIntList(dynamic v) {
+      if (v is List) {
+        return v
+            .map((e) => e is num ? e.toInt() : int.tryParse(e?.toString() ?? ''))
+            .whereType<int>()
+            .toList();
+      }
+      return const [];
+    }
+
+    bool parseBool(dynamic v, {bool fallback = false}) {
+      if (v is bool) return v;
+      if (v is num) return v != 0;
+      if (v is String) return v.toLowerCase() == 'true' || v == '1';
+      return fallback;
+    }
+
+    num parseNum(dynamic v, {num fallback = 0}) {
+      if (v is num) return v;
+      if (v is String) return num.tryParse(v) ?? fallback;
+      return fallback;
+    }
+
+    int parseInt(dynamic v, {int fallback = 0}) {
+      if (v is num) return v.toInt();
+      if (v is String) return int.tryParse(v) ?? fallback;
+      return fallback;
+    }
+
     return Listing(
       id: id,
-      kind: (m['kind'] ?? 'shop') as String,
-      name: (m['name'] ?? '') as String,
-      category: (m['category'] ?? '') as String,
-      phone: (m['phone'] ?? '') as String,
-      address: (m['address'] ?? '') as String,
-      highlight: (m['highlight'] ?? '') as String,
-      tags: List<String>.from(m['tags'] ?? const []),
+      kind: (m['kind'] ?? 'shop').toString(),
+      name: (m['name'] ?? '').toString(),
+      category: (m['category'] ?? '').toString(),
+      phone: (m['phone'] ?? '').toString(),
+      address: (m['address'] ?? '').toString(),
+      highlight: (m['highlight'] ?? '').toString(),
+      tags: parseStringList(m['tags']),
       location: rawLoc,
-      latitude: lat ?? (m['latitude'] as num?)?.toDouble(),
-      longitude: lng ?? (m['longitude'] as num?)?.toDouble(),
-      open24x7: (m['open24x7'] ?? false) as bool,
-      opensAt: m['opensAt'] as String?,
-      closesAt: m['closesAt'] as String?,
-      weeklyOff: List<int>.from(m['weeklyOff'] ?? const []),
-      verified: (m['verified'] ?? false) as bool,
-      status: (m['status'] ?? 'pending') as String,
-      photoUrls: List<String>.from(m['photoUrls'] ?? const []),
-      ratingSum: (m['ratingSum'] ?? 0) as num,
-      reviewCount: (m['reviewCount'] ?? 0) as int,
-      ownerId: (m['ownerId'] ?? '') as String,
+      latitude: lat,
+      longitude: lng,
+      open24x7: parseBool(m['open24x7']),
+      opensAt: m['opensAt']?.toString(),
+      closesAt: m['closesAt']?.toString(),
+      weeklyOff: parseIntList(m['weeklyOff']),
+      verified: parseBool(m['verified'], fallback: true),
+      status: (m['status'] ?? 'active').toString(),
+      photoUrls: parseStringList(m['photoUrls']),
+      ratingSum: parseNum(m['ratingSum']),
+      reviewCount: parseInt(m['reviewCount']),
+      ownerId: (m['ownerId'] ?? '').toString(),
     );
   }
 

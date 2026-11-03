@@ -158,7 +158,13 @@ class BrowseRepository {
 
     // Filter by kind
     if (kind != null && kind.isNotEmpty) {
-      list = list.where((l) => l.kind == kind).toList();
+      final kLower = kind.toLowerCase().trim();
+      list = list.where((l) {
+        if (kLower == 'service') return l.isService;
+        if (kLower == 'place') return l.isPlace;
+        if (kLower == 'shop') return l.isShop;
+        return l.kind.toLowerCase().trim() == kLower;
+      }).toList();
     }
 
     // Filter by category (case-insensitive, matching either category OR tags)
@@ -211,7 +217,13 @@ class BrowseRepository {
         }
         var list = listMap.values.toList();
         if (kind != null && kind.isNotEmpty) {
-          list = list.where((l) => l.kind == kind).toList();
+          final kLower = kind.toLowerCase().trim();
+      list = list.where((l) {
+        if (kLower == 'service') return l.isService;
+        if (kLower == 'place') return l.isPlace;
+        if (kLower == 'shop') return l.isShop;
+        return l.kind.toLowerCase().trim() == kLower;
+      }).toList();
         }
         if (category != null && category.isNotEmpty && category != 'All') {
           final catLower = category.toLowerCase();
@@ -242,7 +254,13 @@ class BrowseRepository {
 
     var list = allListingsMap.values.toList();
     if (kind != null && kind.isNotEmpty) {
-      list = list.where((l) => l.kind == kind).toList();
+      final kLower = kind.toLowerCase().trim();
+      list = list.where((l) {
+        if (kLower == 'service') return l.isService;
+        if (kLower == 'place') return l.isPlace;
+        if (kLower == 'shop') return l.isShop;
+        return l.kind.toLowerCase().trim() == kLower;
+      }).toList();
     }
     if (category != null && category.isNotEmpty && category != 'All') {
       final catLower = category.toLowerCase();
