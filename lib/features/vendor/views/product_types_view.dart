@@ -23,7 +23,6 @@ class _ProductTypesViewState extends State<ProductTypesView> {
   bool _isLoading = true;
   bool _isSubmitting = false;
   String? _errorMessage;
-  bool _configMissing = false;
 
   @override
   void initState() {
@@ -37,7 +36,6 @@ class _ProductTypesViewState extends State<ProductTypesView> {
       if (!mounted) return;
       setState(() {
         if (items.isEmpty) {
-          _configMissing = true;
           // Fallback tags if config document not populated yet
           _productsList = ['Pipes', 'Paint', 'Tools', 'Locks', 'Switches', 'Cables', 'Fittings', 'Hardware'];
         } else {
@@ -48,7 +46,6 @@ class _ProductTypesViewState extends State<ProductTypesView> {
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _configMissing = true;
         _productsList = ['Pipes', 'Paint', 'Tools', 'Locks', 'Switches'];
         _isLoading = false;
       });

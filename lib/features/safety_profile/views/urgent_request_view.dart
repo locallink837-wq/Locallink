@@ -66,7 +66,7 @@ class _UrgentRequestViewState extends State<UrgentRequestView> {
       await _repo.createUrgentSosRequest(
         customerId: user.uid,
         customerName: user.displayName ?? 'Customer',
-        customerPhone: user.phoneNumber ?? '+91 98765 43210',
+        customerPhone: user.phoneNumber?.isNotEmpty == true ? user.phoneNumber! : (user.email ?? ''),
         category: _selectedCategory,
         address: _addressController.text.trim(),
         lat: pos.latitude,

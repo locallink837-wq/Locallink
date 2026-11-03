@@ -141,14 +141,15 @@ class _RequestFormViewState extends State<RequestFormView> {
         if (path != null) photoUrls.add(path);
       }
 
-      final lat = LocationService.lastKnownDevicePosition?.latitude ?? 18.5204;
-      final lng = LocationService.lastKnownDevicePosition?.longitude ?? 73.8567;
+      final pos = LocationService.lastKnownDevicePosition ?? await const LocationService().getCurrentPosition();
+      final lat = pos.latitude;
+      final lng = pos.longitude;
 
       await _repo.createRequest(
         requestId: requestId,
         customerId: user.uid,
         customerName: user.displayName ?? 'Customer',
-        customerPhone: user.phoneNumber ?? '+91 98765 43210',
+        customerPhone: user.phoneNumber?.isNotEmpty == true ? user.phoneNumber! : (user.email ?? ''),
         category: _category,
         description: desc,
         photoUrls: photoUrls,

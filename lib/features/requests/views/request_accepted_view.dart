@@ -66,7 +66,7 @@ class _RequestAcceptedViewState extends State<RequestAcceptedView> {
     final requestId = (args['requestId'] ?? req?.id ?? '').toString();
 
     final providerName = _providerListing?.name ?? req?.providerName ?? 'Assigned Provider';
-    final providerPhone = _providerListing?.phone ?? req?.customerPhone ?? '+91 98765 00000';
+    final providerPhone = _providerListing?.phone ?? req?.customerPhone ?? '';
 
     return Theme(
       data: uiFeatureTheme(context, UiColors.teal),

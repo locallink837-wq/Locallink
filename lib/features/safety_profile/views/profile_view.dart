@@ -73,7 +73,11 @@ class _ProfileViewState extends State<ProfileView> {
           builder: (context, snapshot) {
             final appUser = snapshot.data;
             final name = appUser?.name.isNotEmpty == true ? appUser!.name : (user.displayName ?? 'Customer');
-            final phone = appUser?.phone.isNotEmpty == true ? appUser!.phone : (user.phoneNumber ?? '+91 98765 43210');
+            final phone = appUser?.phone.isNotEmpty == true
+                ? appUser!.phone
+                : (user.phoneNumber?.isNotEmpty == true
+                    ? user.phoneNumber!
+                    : (user.email ?? ''));
             final photo = _avatarUrl ?? (appUser?.photoUrl.isNotEmpty == true ? appUser!.photoUrl : null);
 
             return SingleChildScrollView(
@@ -163,6 +167,13 @@ class _ProfileViewState extends State<ProfileView> {
                     customAccent: UiColors.teal,
                     onTap: () => Navigator.pushNamed(context, HelpFeedbackView.route),
                   ),
+                  UiListTile(
+                    title: 'Log out',
+                    subtitle: 'Sign out of your account',
+                    icon: Icons.logout_rounded,
+                    customAccent: UiColors.red,
+                    onTap: () => _handleSignOut(context),
+                  ),
                   const SizedBox(height: 24),
                 ],
               ),
@@ -171,5 +182,32 @@ class _ProfileViewState extends State<ProfileView> {
         ),
       ),
     );
+  }
+
+  Future<void> _handleSignOut(BuildContext context) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: uiText('Log out', size: 18, weight: FontWeight.w800),
+        content: uiText('Are you sure you want to log out of LocaLink?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: uiText('Cancel', color: UiColors.muted),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: UiColors.red),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Log out', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await FirebaseAuth.instance.signOut();
+      if (!context.mounted) return;
+      Navigator.pushNamedAndRemoveUntil(context, '/auth/splash', (route) => false);
+    }
   }
 }

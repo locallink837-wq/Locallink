@@ -318,18 +318,40 @@ class BrowseRepository {
     }).toList();
   }
 
-  /// Fetch nearby listings sorted by distance with verified listings prioritized
+  /// Fetch nearby listings sorted by distance with verified listings prioritized.
+  /// Strictly filters to listings within [maxRadiusMeters] (default 50km) when nearby results exist.
   Future<List<Listing>> fetchNearbyListings({
     required double userLat,
     required double userLng,
     String? kind,
+    double maxRadiusMeters = 50000,
   }) async {
     final listings = await fetchListings(kind: kind);
-    return _locationService.sortByDistanceAndVerified(
+    final sorted = _locationService.sortByDistanceAndVerified(
       listings: listings,
       userLat: userLat,
       userLng: userLng,
     );
+
+    // Filter to truly nearby listings (within radius)
+    final nearby = sorted.where((l) {
+      if (l.latitude == null || l.longitude == null) return false;
+      final dist = _locationService.calculateDistanceMeters(
+        startLatitude: userLat,
+        startLongitude: userLng,
+        endLatitude: l.latitude!,
+        endLongitude: l.longitude!,
+      );
+      return dist <= maxRadiusMeters;
+    }).toList();
+
+    // If there are nearby listings (e.g. newly registered service in user's city), return ONLY nearby!
+    if (nearby.isNotEmpty) {
+      return nearby;
+    }
+
+    // Fallback: return sorted listings if no local services exist yet
+    return sorted;
   }
 
   /// Fetch reviews for a specific listing from `listings/{id}/reviews`

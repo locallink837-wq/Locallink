@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:geolocator/geolocator.dart';
 
 import '../../../app/theme/app_theme.dart';
 import '../../../core/core.dart';
@@ -112,48 +114,65 @@ class _HomeViewState extends State<HomeView> {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: AppColors.teal.withValues(alpha: 0.12),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.location_on,
-                size: 18,
-                color: AppColors.teal,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'CURRENT LOCATION',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.5,
-                      color: AppColors.secondaryMuteLight,
-                    ),
+        title: InkWell(
+          onTap: _showLocationPicker,
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: AppColors.teal.withValues(alpha: 0.12),
+                    shape: BoxShape.circle,
                   ),
-                  Text(
-                    _currentArea,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.inkLight,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  child: const Icon(
+                    Icons.location_on,
+                    size: 18,
+                    color: AppColors.teal,
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Row(
+                        children: [
+                          Text(
+                            'CURRENT LOCATION',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.5,
+                              color: AppColors.secondaryMuteLight,
+                            ),
+                          ),
+                          SizedBox(width: 4),
+                          Icon(
+                            Icons.keyboard_arrow_down_rounded,
+                            size: 14,
+                            color: AppColors.teal,
+                          ),
+                        ],
+                      ),
+                      Text(
+                        _currentArea,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.inkLight,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
         actions: [
           IconButton(
@@ -498,5 +517,252 @@ class _HomeViewState extends State<HomeView> {
       endLongitude: listing.longitude!,
     );
     return _locationService.formatDistance(meters);
+  }
+
+  void _showLocationPicker() {
+    final searchController = TextEditingController();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        bool isLocatingGps = false;
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 16,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Select your location',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.inkLight,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Find services, places, and shops closest to you',
+                    style: TextStyle(fontSize: 12.5, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Use current GPS button
+                  InkWell(
+                    borderRadius: BorderRadius.circular(14),
+                    onTap: () async {
+                      setSheetState(() => isLocatingGps = true);
+                      try {
+                        final (pos, area) = await _locationService.getCurrentPositionAndArea();
+                        await _applyNewLocation(pos.latitude, pos.longitude, area.isNotEmpty ? area : 'Current GPS Location');
+                        if (context.mounted) Navigator.pop(context);
+                      } catch (e) {
+                        debugPrint('GPS location error: $e');
+                      } finally {
+                        if (context.mounted) setSheetState(() => isLocatingGps = false);
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: AppColors.teal.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: AppColors.teal.withValues(alpha: 0.3)),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: const BoxDecoration(
+                              color: AppColors.teal,
+                              shape: BoxShape.circle,
+                            ),
+                            child: isLocatingGps
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                  )
+                                : const Icon(Icons.my_location_rounded, color: Colors.white, size: 16),
+                          ),
+                          const SizedBox(width: 12),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Use My Current Location (GPS)',
+                                  style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700, color: AppColors.teal),
+                                ),
+                                Text(
+                                  'Detect exact area using device sensor',
+                                  style: TextStyle(fontSize: 11, color: Colors.grey),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Icon(Icons.chevron_right_rounded, color: AppColors.teal),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Search City or Area input
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: Colors.grey.shade300),
+                    ),
+                    child: TextField(
+                      controller: searchController,
+                      textInputAction: TextInputAction.search,
+                      onSubmitted: (query) => _searchAndSetLocation(query, ctx),
+                      decoration: InputDecoration(
+                        hintText: 'Search city or area (e.g. Satara, Pune...)',
+                        hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
+                        prefixIcon: const Icon(Icons.search_rounded, color: Colors.grey),
+                        suffixIcon: IconButton(
+                          icon: const Icon(Icons.arrow_forward_rounded, color: AppColors.teal),
+                          onPressed: () => _searchAndSetLocation(searchController.text, ctx),
+                        ),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // Quick City Chips
+                  const Text(
+                    'Popular Locations',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _buildCityChip('Satara', 17.6805, 73.9997, ctx),
+                      _buildCityChip('Pune', 18.5204, 73.8567, ctx),
+                      _buildCityChip('Mumbai', 19.0760, 72.8777, ctx),
+                      _buildCityChip('Kolhapur', 16.7050, 74.2433, ctx),
+                      _buildCityChip('Sangli', 16.8524, 74.5815, ctx),
+                      _buildCityChip('Nashik', 19.9975, 73.7898, ctx),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _searchAndSetLocation(String query, BuildContext sheetContext) async {
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) return;
+    try {
+      final locations = await locationFromAddress(trimmed);
+      if (locations.isNotEmpty) {
+        final loc = locations.first;
+        await _applyNewLocation(loc.latitude, loc.longitude, trimmed);
+        if (sheetContext.mounted) Navigator.pop(sheetContext);
+        return;
+      }
+    } catch (_) {}
+
+    final lower = trimmed.toLowerCase();
+    if (lower.contains('satara')) {
+      await _applyNewLocation(17.6805, 73.9997, 'Satara');
+    } else if (lower.contains('pune')) {
+      await _applyNewLocation(18.5204, 73.8567, 'Pune');
+    } else if (lower.contains('mumbai')) {
+      await _applyNewLocation(19.0760, 72.8777, 'Mumbai');
+    } else if (lower.contains('kolhapur')) {
+      await _applyNewLocation(16.7050, 74.2433, 'Kolhapur');
+    } else {
+      await _applyNewLocation(_userLat, _userLng, trimmed);
+    }
+    if (sheetContext.mounted) Navigator.pop(sheetContext);
+  }
+
+  Widget _buildCityChip(String city, double lat, double lng, BuildContext sheetContext) {
+    final isSelected = _currentArea.toLowerCase().contains(city.toLowerCase());
+    return ActionChip(
+      label: Text(city),
+      avatar: isSelected ? const Icon(Icons.check, size: 14, color: Colors.white) : null,
+      backgroundColor: isSelected ? AppColors.teal : Colors.grey.shade100,
+      labelStyle: TextStyle(
+        color: isSelected ? Colors.white : AppColors.inkLight,
+        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+        fontSize: 12.5,
+      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      onPressed: () async {
+        await _applyNewLocation(lat, lng, city);
+        if (sheetContext.mounted) Navigator.pop(sheetContext);
+      },
+    );
+  }
+
+  Future<void> _applyNewLocation(double lat, double lng, String areaName) async {
+    LocationService.lastKnownArea = areaName;
+    LocationService.lastKnownDevicePosition = Position(
+      latitude: lat,
+      longitude: lng,
+      timestamp: DateTime.now(),
+      accuracy: 10,
+      altitude: 0,
+      altitudeAccuracy: 0,
+      heading: 0,
+      headingAccuracy: 0,
+      speed: 0,
+      speedAccuracy: 0,
+    );
+
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid != null && uid.isNotEmpty) {
+      try {
+        await FirebaseFirestore.instance.collection('users').doc(uid).set({
+          'area': areaName,
+          'lat': lat,
+          'lng': lng,
+        }, SetOptions(merge: true));
+      } catch (_) {}
+    }
+
+    if (mounted) {
+      setState(() {
+        _userLat = lat;
+        _userLng = lng;
+        _currentArea = areaName;
+      });
+      _loadData();
+    }
   }
 }

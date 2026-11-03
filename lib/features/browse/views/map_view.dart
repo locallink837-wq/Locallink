@@ -26,8 +26,10 @@ class _MapViewState extends State<MapView> {
   final _repository = BrowseRepository();
   final _locationService = const LocationService();
   final MapController _mapController = MapController();
+  final TextEditingController _searchController = TextEditingController();
 
   String _filterKind = 'all'; // all | service | place | shop
+  String _searchQuery = '';
   List<Listing> _allListings = [];
   Listing? _selectedListing;
   bool _isLoading = false;
@@ -121,9 +123,30 @@ class _MapViewState extends State<MapView> {
     }
   }
 
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _mapController.dispose();
+    super.dispose();
+  }
+
   List<Listing> get _filteredListings {
-    if (_filterKind == 'all') return _allListings;
-    return _allListings.where((l) => l.kind == _filterKind).toList();
+    var list = _allListings;
+    if (_filterKind != 'all') {
+      list = list.where((l) => l.kind == _filterKind).toList();
+    }
+    if (_searchQuery.trim().isNotEmpty) {
+      final q = _searchQuery.trim().toLowerCase();
+      list = list.where((l) {
+        final matchName = l.name.toLowerCase().contains(q);
+        final matchCat = l.category.toLowerCase().contains(q);
+        final matchTags = l.tags.any((t) => t.toLowerCase().contains(q));
+        final matchHighlight = l.highlight.toLowerCase().contains(q);
+        final matchAddress = l.address.toLowerCase().contains(q);
+        return matchName || matchCat || matchTags || matchHighlight || matchAddress;
+      }).toList();
+    }
+    return list;
   }
 
   void _openDetail(Listing listing) {
@@ -340,7 +363,7 @@ class _MapViewState extends State<MapView> {
                       point: LatLng(listing.latitude!, listing.longitude!),
                       width: isSelected ? 48 : 36,
                       height: isSelected ? 56 : 44,
-                      alignment: Alignment.topCenter,
+                      alignment: Alignment.bottomCenter,
                       child: GestureDetector(
                         onTap: () {
                           setState(() => _selectedListing = listing);
@@ -364,34 +387,96 @@ class _MapViewState extends State<MapView> {
             ],
           ),
 
-          // Top Category Filter Chips Bar
+          // Top Search Bar + Category Filter Chips Bar
           Positioned(
             top: 12,
             left: 14,
             right: 14,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.95),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: AppColors.lineLight),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x18000000),
-                    blurRadius: 8,
-                    offset: Offset(0, 2),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Interactive Search by Name
+                Container(
+                  height: 46,
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x22000000),
+                        blurRadius: 10,
+                        offset: Offset(0, 3),
+                      ),
+                    ],
+                    border: Border.all(color: AppColors.lineLight),
                   ),
-                ],
-              ),
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    _buildFilterTab(
-                      'all',
-                      'All (${_allListings.length})',
-                      AppColors.inkLight,
-                    ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.search_rounded, color: AppColors.teal, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: TextField(
+                          controller: _searchController,
+                          textInputAction: TextInputAction.search,
+                          onChanged: (val) {
+                            setState(() => _searchQuery = val);
+                            final matches = _filteredListings;
+                            if (matches.isNotEmpty && matches.first.latitude != null && matches.first.longitude != null) {
+                              final first = matches.first;
+                              setState(() => _selectedListing = first);
+                              try {
+                                _mapController.move(LatLng(first.latitude!, first.longitude!), 15.5);
+                              } catch (_) {}
+                            }
+                          },
+                          decoration: const InputDecoration(
+                            hintText: 'Search places, shops or services by name...',
+                            hintStyle: TextStyle(fontSize: 13, color: Colors.grey),
+                            border: InputBorder.none,
+                            isDense: true,
+                          ),
+                        ),
+                      ),
+                      if (_searchQuery.isNotEmpty)
+                        IconButton(
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          icon: const Icon(Icons.close_rounded, size: 18, color: Colors.grey),
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() => _searchQuery = '');
+                          },
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+
+                // Category Filter Tabs
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.95),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: AppColors.lineLight),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x18000000),
+                        blurRadius: 8,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        _buildFilterTab(
+                          'all',
+                          'All (${_filteredListings.length})',
+                          AppColors.inkLight,
+                        ),
                     const SizedBox(width: 6),
                     _buildFilterTab(
                       'service',
