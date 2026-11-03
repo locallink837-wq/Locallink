@@ -3,6 +3,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../config/env.dart';
 import '../services/location_service.dart';
 import 'ui_kit.dart';
 
@@ -41,6 +42,24 @@ class _LocationMapPickerState extends State<LocationMapPicker> {
     _mapController = MapController();
     _latitude = widget.initialLatitude;
     _longitude = widget.initialLongitude;
+
+    // If using Pune fallback coordinates but device already has a known location, use it immediately
+    final lastKnown = LocationService.lastKnownDevicePosition;
+    if (_isDefaultFallbackLocation(_latitude, _longitude) && lastKnown != null) {
+      _latitude = lastKnown.latitude;
+      _longitude = lastKnown.longitude;
+    }
+
+    // Auto-detect real device location immediately if using default fallback
+    if (_isDefaultFallbackLocation(_latitude, _longitude)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _locateMe();
+      });
+    }
+  }
+
+  bool _isDefaultFallbackLocation(double lat, double lng) {
+    return (lat - Env.defaultLatitude).abs() < 0.001 && (lng - Env.defaultLongitude).abs() < 0.001;
   }
 
   @override
@@ -50,6 +69,7 @@ class _LocationMapPickerState extends State<LocationMapPicker> {
   }
 
   Future<void> _updateLocation(double lat, double lng) async {
+    if (!mounted) return;
     setState(() {
       _latitude = lat;
       _longitude = lng;
@@ -57,13 +77,14 @@ class _LocationMapPickerState extends State<LocationMapPicker> {
 
     String address = '';
     try {
-      final placemarks = await placemarkFromCoordinates(lat, lng);
+      final placemarks = await placemarkFromCoordinates(lat, lng).timeout(const Duration(seconds: 4));
       if (placemarks.isNotEmpty) {
         final p = placemarks.first;
-        final parts = [p.name, p.subLocality, p.locality, p.postalCode]
+        final parts = [p.name, p.subLocality, p.locality, p.subAdministrativeArea, p.administrativeArea]
             .whereType<String>()
             .map((s) => s.trim())
             .where((s) => s.isNotEmpty && s != p.postalCode)
+            .toSet()
             .toList();
         if (parts.isNotEmpty) {
           address = parts.join(', ');
@@ -79,13 +100,23 @@ class _LocationMapPickerState extends State<LocationMapPicker> {
   }
 
   Future<void> _locateMe() async {
+    if (!mounted) return;
     setState(() => _isLocating = true);
     try {
       const service = LocationService();
       final pos = await service.getCurrentPosition();
-      _mapController.move(LatLng(pos.latitude, pos.longitude), 16);
+      if (!mounted) return;
+      setState(() {
+        _latitude = pos.latitude;
+        _longitude = pos.longitude;
+      });
+      try {
+        _mapController.move(LatLng(pos.latitude, pos.longitude), 16);
+      } catch (_) {}
       await _updateLocation(pos.latitude, pos.longitude);
-    } catch (_) {} finally {
+    } catch (e) {
+      debugPrint('Error locating device: $e');
+    } finally {
       if (mounted) setState(() => _isLocating = false);
     }
   }
@@ -135,7 +166,7 @@ class _LocationMapPickerState extends State<LocationMapPicker> {
                     point: LatLng(_latitude, _longitude),
                     width: 48,
                     height: 48,
-                    alignment: Alignment.topCenter,
+                    alignment: Alignment.bottomCenter,
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [

@@ -42,44 +42,84 @@ class LocationService {
     }
   }
 
-  /// Get current user device coordinates, prioritizing real GPS with fallback
+  /// Get current user device coordinates, prioritizing real GPS with fallback.
+  /// Uses a progressive accuracy strategy so indoors/coarse permissions never fail.
   Future<Position> getCurrentPosition() async {
     try {
       final serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
+        debugPrint('Location services are disabled on device.');
         return lastKnownDevicePosition ?? _fallbackPosition();
       }
 
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied ||
-            permission == LocationPermission.deniedForever) {
-          return lastKnownDevicePosition ?? _fallbackPosition();
-        }
+      }
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        return lastKnownDevicePosition ?? _fallbackPosition();
       }
 
-      // Check last known position first for quick responsiveness
-      final lastKnown = await Geolocator.getLastKnownPosition();
-      if (lastKnown != null) {
-        lastKnownDevicePosition = lastKnown;
-      }
-
+      // 1. Fetch OS-cached position (Google Maps / Android last known)
+      Position? candidatePosition;
       try {
-        final current = await Geolocator.getCurrentPosition(
+        candidatePosition = await Geolocator.getLastKnownPosition();
+        if (candidatePosition != null) {
+          lastKnownDevicePosition = candidatePosition;
+        }
+      } catch (_) {}
+
+      // 2. Try fast live acquisition (medium/balanced accuracy: Wi-Fi + Cell towers).
+      // This succeeds indoors in < 1-2 seconds on both Fine and Coarse permissions!
+      try {
+        final fastPosition = await Geolocator.getCurrentPosition(
           locationSettings: const LocationSettings(
-            accuracy: LocationAccuracy.high,
-            timeLimit: Duration(seconds: 12),
+            accuracy: LocationAccuracy.medium,
+            timeLimit: Duration(seconds: 4),
           ),
         );
-        lastKnownDevicePosition = current;
-        return current;
+        lastKnownDevicePosition = fastPosition;
+        return fastPosition;
       } catch (e) {
-        debugPrint('GPS fix timeout/error, using last known: $e');
-        if (lastKnown != null) return lastKnown;
+        debugPrint('Fast medium-accuracy location acquisition notice: $e');
       }
 
-      return lastKnownDevicePosition ?? _fallbackPosition();
+      // 3. If medium failed, try high accuracy (GPS satellites) with 4-second timeout
+      try {
+        final highPosition = await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.high,
+            timeLimit: Duration(seconds: 4),
+          ),
+        );
+        lastKnownDevicePosition = highPosition;
+        return highPosition;
+      } catch (e) {
+        debugPrint('High accuracy GPS acquisition notice: $e');
+      }
+
+      // 4. Return last known if available
+      if (candidatePosition != null) {
+        return candidatePosition;
+      }
+      if (lastKnownDevicePosition != null) {
+        return lastKnownDevicePosition!;
+      }
+
+      // 5. Try low accuracy as a last live attempt before default
+      try {
+        final lowPosition = await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.low,
+            timeLimit: Duration(seconds: 3),
+          ),
+        );
+        lastKnownDevicePosition = lowPosition;
+        return lowPosition;
+      } catch (_) {}
+
+      return _fallbackPosition();
     } catch (e) {
       debugPrint('Error getting current position, using fallback: $e');
       return lastKnownDevicePosition ?? _fallbackPosition();

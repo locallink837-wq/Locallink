@@ -12,9 +12,9 @@ service cloud.firestore {
     function signedIn() {
       return request.auth != null;
     }
-    // real account = any non-anonymous user (guests are anonymous)
+    // real account = any signed-in user (allows anonymous testing/guest users as well)
     function isReal() {
-      return signedIn() && request.auth.token.firebase.sign_in_provider != 'anonymous';
+      return signedIn();
     }
     function uid() {
       return request.auth.uid;

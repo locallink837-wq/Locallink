@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../../../core/services/location_service.dart';
 import '../../../core/widgets/location_map_picker.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../data/vendor_repository.dart';
@@ -25,6 +26,16 @@ class _PlaceLocationViewState extends State<PlaceLocationView> {
   double _longitude = 73.8567;
   bool _isSubmitting = false;
   String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    final lastKnown = LocationService.lastKnownDevicePosition;
+    if (lastKnown != null) {
+      _latitude = lastKnown.latitude;
+      _longitude = lastKnown.longitude;
+    }
+  }
 
   @override
   void dispose() {

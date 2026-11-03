@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/services/location_service.dart';
 import '../../../core/widgets/location_map_picker.dart';
 import '../../../core/widgets/ui_kit.dart';
 import 'shop_hours_photo_view.dart';
@@ -20,6 +21,16 @@ class _ShopLocationViewState extends State<ShopLocationView> {
   double _latitude = 18.5204;
   double _longitude = 73.8567;
   String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    final lastKnown = LocationService.lastKnownDevicePosition;
+    if (lastKnown != null) {
+      _latitude = lastKnown.latitude;
+      _longitude = lastKnown.longitude;
+    }
+  }
 
   @override
   void dispose() {

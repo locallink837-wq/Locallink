@@ -133,22 +133,6 @@ class _ProductTypesViewState extends State<ProductTypesView> {
                       const SizedBox(height: 14),
                     ],
 
-                    if (_configMissing) ...[
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        margin: const EdgeInsets.only(bottom: 12),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFFF3E0),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: uiText(
-                          'Note: config/shopProducts document is missing in Firestore. Showing default suggested items.',
-                          size: 11.5,
-                          color: const Color(0xFFE65100),
-                        ),
-                      ),
-                    ],
-
                     uiText('Select product categories and items you keep in stock', size: 13.5, weight: FontWeight.w700),
                     const SizedBox(height: 6),
                     uiText('Customers searching for these items will find your shop nearby', size: 12, color: UiColors.muted),
