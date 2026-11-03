@@ -66,6 +66,34 @@ class _MapViewState extends State<MapView> {
     },
   ];
 
+  bool _handledRouteArgs = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_handledRouteArgs) {
+      _handledRouteArgs = true;
+      final args = ModalRoute.of(context)?.settings.arguments;
+      if (args is Listing) {
+        _selectedListing = args;
+        if (!_allListings.any((l) => l.id == args.id)) {
+          _allListings = [args, ..._allListings];
+        }
+        final double targetLat = (args.latitude != null && args.latitude != 0.0)
+            ? args.latitude!
+            : _userLat;
+        final double targetLng = (args.longitude != null && args.longitude != 0.0)
+            ? args.longitude!
+            : _userLng;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          try {
+            _mapController.move(LatLng(targetLat, targetLng), 16.0);
+          } catch (_) {}
+        });
+      }
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -94,17 +122,30 @@ class _MapViewState extends State<MapView> {
     if (mounted) {
       setState(() {
         _allListings = list;
-        final retained = list.where(
-          (listing) => listing.id == previousSelectedId,
-        );
-        _selectedListing = retained.isNotEmpty
-            ? retained.first
-            : (list.isEmpty ? null : list.first);
+        if (_selectedListing != null) {
+          if (!_allListings.any((l) => l.id == _selectedListing!.id)) {
+            _allListings = [_selectedListing!, ..._allListings];
+          }
+        } else {
+          final retained = list.where(
+            (listing) => listing.id == previousSelectedId,
+          );
+          _selectedListing = retained.isNotEmpty
+              ? retained.first
+              : (list.isEmpty ? null : list.first);
+        }
         _isLoading = false;
       });
       WidgetsBinding.instance.addPostFrameCallback((_) {
         try {
-          _mapController.move(LatLng(_userLat, _userLng), 14.5);
+          final double targetLat = (_selectedListing?.latitude != null && _selectedListing!.latitude != 0.0)
+              ? _selectedListing!.latitude!
+              : _userLat;
+          final double targetLng = (_selectedListing?.longitude != null && _selectedListing!.longitude != 0.0)
+              ? _selectedListing!.longitude!
+              : _userLng;
+          final targetZoom = _selectedListing != null ? 16.0 : 14.5;
+          _mapController.move(LatLng(targetLat, targetLng), targetZoom);
         } catch (_) {}
       });
     }

@@ -171,40 +171,212 @@ Ensure estimated costs are realistic for urban India (in INR ₹).
     required String uid,
     String? userPrompt,
   }) {
-    final note = (userPrompt ?? '').toLowerCase();
-    String title = 'Plumbing Leak Detected';
-    String category = 'Plumber';
-    String diag =
-        'Water seepage or fitting failure identified. Common cause is worn internal washer, thread tape wear, or high line pressure.';
-    String tips = 'Turn off the nearest angle stopcock or main building valve to avoid water damage.';
+    final note = (userPrompt ?? '').trim().toLowerCase();
+
+    String title;
+    String category;
+    String diag;
+    String tips;
     int minCost = 250;
     int maxCost = 500;
     String urgency = 'today';
 
-    if (note.contains('light') || note.contains('switch') || note.contains('wire') || note.contains('power')) {
-      title = 'Electrical Circuit Spark / Tripping';
+    // 1. Electrician
+    if (note.contains('electric') ||
+        note.contains('light') ||
+        note.contains('switch') ||
+        note.contains('wire') ||
+        note.contains('power') ||
+        note.contains('spark') ||
+        note.contains('mcb') ||
+        note.contains('fuse') ||
+        note.contains('circuit') ||
+        note.contains('socket') ||
+        note.contains('plug') ||
+        note.contains('bulb') ||
+        note.contains('fan') ||
+        note.contains('tube') ||
+        note.contains('inverter') ||
+        note.contains('shock') ||
+        note.contains('tripping') ||
+        note.contains('current')) {
+      title = 'Electrical Circuit / Component Fault';
       category = 'Electrician';
-      diag = 'Contact overload or loose terminal causing intermittent contact and potential heat buildup.';
+      diag = 'Contact overload, faulty wiring, or switch terminal wear causing power instability.';
       tips = 'Turn off the corresponding MCB on your distribution board immediately. Do not touch bare contacts.';
       minCost = 200;
       maxCost = 450;
       urgency = 'now';
-    } else if (note.contains('door') || note.contains('lock') || note.contains('key')) {
-      title = 'Door Latch / Lock Mechanism Stuck';
+    }
+    // 2. Appliance Repair
+    else if (note.contains('ac') ||
+        note.contains('air conditioner') ||
+        note.contains('cooler') ||
+        note.contains('fridge') ||
+        note.contains('refrigerator') ||
+        note.contains('washing machine') ||
+        note.contains('washer') ||
+        note.contains('microwave') ||
+        note.contains('oven') ||
+        note.contains('tv') ||
+        note.contains('television') ||
+        note.contains('geyser') ||
+        note.contains('heater') ||
+        note.contains('purifier') ||
+        note.contains('ro ') ||
+        note.contains('water purifier') ||
+        note.contains('chimney') ||
+        note.contains('appliance')) {
+      title = 'Appliance Malfunction & Service';
+      category = 'Appliance Repair';
+      diag = 'Internal component wear, motor irregularity, or heating element fault requiring professional service.';
+      tips = 'Disconnect the appliance from the wall power socket before inspecting.';
+      minCost = 350;
+      maxCost = 750;
+      urgency = 'today';
+    }
+    // 3. Carpenter
+    else if (note.contains('wood') ||
+        note.contains('cabinet') ||
+        note.contains('drawer') ||
+        note.contains('hinge') ||
+        note.contains('furniture') ||
+        note.contains('table') ||
+        note.contains('chair') ||
+        note.contains('bed') ||
+        note.contains('shelf') ||
+        note.contains('wardrobe') ||
+        note.contains('cupboard') ||
+        note.contains('carpenter') ||
+        note.contains('plywood')) {
+      title = 'Woodwork / Furniture Alignment';
+      category = 'Carpenter';
+      diag = 'Loose screw grip in wood composite, joint misalignment, or bent hardware needing adjustment.';
+      tips = 'Support the door or furniture weight to avoid stripping surrounding wood threads.';
+      minCost = 250;
+      maxCost = 500;
+      urgency = 'schedule';
+    }
+    // 4. Locksmith
+    else if (note.contains('door') ||
+        note.contains('lock') ||
+        note.contains('key') ||
+        note.contains('latch') ||
+        note.contains('deadbolt') ||
+        note.contains('padlock') ||
+        note.contains('cylinder') ||
+        note.contains('handle')) {
+      title = 'Door Latch / Lock Mechanism Issue';
       category = 'Locksmith';
       diag = 'Internal cylinder misalignment or jammed tumbler. Requires pin alignment or mortise lock replacement.';
       tips = 'Do not force the key with excessive torque to avoid snapping the brass blade.';
       minCost = 300;
       maxCost = 600;
       urgency = 'now';
-    } else if (note.contains('wood') || note.contains('cabinet') || note.contains('drawer') || note.contains('hinge')) {
-      title = 'Cabinet Hinge / Wood Misalignment';
-      category = 'Carpenter';
-      diag = 'Loose screw grip in particle board or bent auto-closing hinge needing realignment.';
-      tips = 'Support the door weight to avoid stripping the surrounding screw threads.';
-      minCost = 200;
-      maxCost = 400;
+    }
+    // 5. Painter
+    else if (note.contains('paint') ||
+        note.contains('wall') ||
+        note.contains('damp') ||
+        note.contains('whitewash') ||
+        note.contains('putty') ||
+        note.contains('peeling') ||
+        note.contains('stain') ||
+        note.contains('color') ||
+        note.contains('texture')) {
+      title = 'Wall Surface & Paint Preparation';
+      category = 'Painter';
+      diag = 'Surface seepage, flaking paint, or wear detected requiring scraping, primer, and topcoat application.';
+      tips = 'Keep the room well-ventilated and keep children away from freshly prepared surfaces.';
+      minCost = 500;
+      maxCost = 1200;
       urgency = 'schedule';
+    }
+    // 6. Cleaning
+    else if (note.contains('clean') ||
+        note.contains('cleaning') ||
+        note.contains('deep clean') ||
+        note.contains('dust') ||
+        note.contains('mop') ||
+        note.contains('scrub') ||
+        note.contains('sofa clean') ||
+        note.contains('carpet')) {
+      title = 'Professional Deep Cleaning Needed';
+      category = 'Cleaning';
+      diag = 'Accumulated grime or deep staining requiring industrial vacuuming and sanitizing solution.';
+      tips = 'Remove sensitive documents and personal items from the area prior to service.';
+      minCost = 400;
+      maxCost = 900;
+      urgency = 'today';
+    }
+    // 7. Pest Control
+    else if (note.contains('pest') ||
+        note.contains('cockroach') ||
+        note.contains('termite') ||
+        note.contains('bed bug') ||
+        note.contains('ant') ||
+        note.contains('mosquito') ||
+        note.contains('rat') ||
+        note.contains('mouse') ||
+        note.contains('rodent') ||
+        note.contains('insect') ||
+        note.contains('fumigation')) {
+      title = 'Pest Infestation Treatment';
+      category = 'Pest Control';
+      diag = 'Presence of household pests detected requiring odorless gel baiting or targeted spray treatment.';
+      tips = 'Keep all food, kitchenware, and pet bowls covered during treatment.';
+      minCost = 600;
+      maxCost = 1500;
+      urgency = 'today';
+    }
+    // 8. Plumber
+    else if (note.contains('water') ||
+        note.contains('leak') ||
+        note.contains('pipe') ||
+        note.contains('tap') ||
+        note.contains('faucet') ||
+        note.contains('drain') ||
+        note.contains('drainage') ||
+        note.contains('sink') ||
+        note.contains('basin') ||
+        note.contains('toilet') ||
+        note.contains('flush') ||
+        note.contains('sewage') ||
+        note.contains('clog') ||
+        note.contains('drip') ||
+        note.contains('plumb')) {
+      title = 'Plumbing Leak / Drainage Issue';
+      category = 'Plumber';
+      diag = 'Water seepage or fitting failure identified. Common cause is worn internal washer, thread tape wear, or high line pressure.';
+      tips = 'Turn off the nearest angle stopcock or main building valve to avoid water damage.';
+      minCost = 250;
+      maxCost = 500;
+      urgency = 'today';
+    }
+    // 9. Generic Custom Requirement entered by user
+    else if (userPrompt != null && userPrompt.trim().isNotEmpty) {
+      final words = userPrompt.trim().split(RegExp(r'\s+'));
+      final displayTitle = words.take(4).join(' ');
+      final capitalized = displayTitle.isNotEmpty
+          ? '${displayTitle[0].toUpperCase()}${displayTitle.substring(1)}'
+          : 'Service';
+      title = '$capitalized Issue';
+      category = 'Handyman';
+      diag = 'Diagnostic review for resident requirement: "$userPrompt". On-site inspection recommended.';
+      tips = 'Ensure the working area is clear and unobstructed before the technician arrives.';
+      minCost = 250;
+      maxCost = 550;
+      urgency = 'today';
+    }
+    // 10. Default fallback only when nothing was entered and no photo provided
+    else {
+      title = 'General Home Maintenance Issue';
+      category = 'Handyman';
+      diag = 'General household repair or maintenance requirement. Verified provider recommended for diagnosis.';
+      tips = 'Keep the problem area clear for inspection.';
+      minCost = 250;
+      maxCost = 500;
+      urgency = 'today';
     }
 
     return AiSession(
