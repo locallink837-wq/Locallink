@@ -8,6 +8,7 @@ class Listing {
   final String category;
   final String phone;
   final String address;
+  final String city;
   final String highlight;
   final List<String> tags;
   final dynamic location; // GeoPoint or Map with lat/lng
@@ -31,6 +32,7 @@ class Listing {
     required this.category,
     this.phone = '',
     this.address = '',
+    this.city = '',
     this.highlight = '',
     this.tags = const [],
     this.location,
@@ -47,6 +49,8 @@ class Listing {
     this.reviewCount = 0,
     this.ownerId = '',
   });
+
+  bool get isActive => status == 'active';
 
   double get averageRating => reviewCount == 0 ? 0 : (ratingSum / reviewCount);
 
@@ -159,6 +163,7 @@ class Listing {
       category: (m['category'] ?? '').toString(),
       phone: (m['phone'] ?? '').toString(),
       address: (m['address'] ?? '').toString(),
+      city: (m['city'] ?? m['area'] ?? '').toString(),
       highlight: (m['highlight'] ?? '').toString(),
       tags: parseStringList(m['tags']),
       location: rawLoc,
@@ -183,6 +188,8 @@ class Listing {
         'category': category,
         'phone': phone,
         'address': address,
+        'city': city,
+        'isActive': isActive,
         'highlight': highlight,
         'tags': tags,
         if (location != null) 'location': location,

@@ -8,6 +8,7 @@ class AppUser {
   final String phone;
   final String email;
   final String area;
+  final String city;
   final String language; // en | hi | mr
   final bool onboardingDone;
   final String photoUrl;
@@ -20,6 +21,7 @@ class AppUser {
     this.phone = '',
     this.email = '',
     this.area = '',
+    this.city = '',
     this.language = 'en',
     this.onboardingDone = false,
     this.photoUrl = '',
@@ -50,6 +52,7 @@ class AppUser {
         phone: (m['phone'] ?? '') as String,
         email: (m['email'] ?? '') as String,
         area: (m['area'] ?? '') as String,
+        city: (m['city'] ?? m['area'] ?? '').toString(),
         language: (m['language'] ?? 'en') as String,
         onboardingDone: (m['onboardingDone'] ?? false) as bool,
         photoUrl: (m['photoUrl'] ?? '') as String,
@@ -66,6 +69,7 @@ class AppUser {
         'phone': phone,
         'email': email,
         'area': area,
+        'city': city,
         'language': language,
         'onboardingDone': onboardingDone,
         'photoUrl': photoUrl,
