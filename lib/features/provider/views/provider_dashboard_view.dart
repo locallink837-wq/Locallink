@@ -100,24 +100,7 @@ class _ProviderDashboardViewState extends State<ProviderDashboardView> {
                         stream: _repo.streamInboxLeads(effectiveUid),
                         builder: (context, leadsSnap) {
                           final rawLeads = leadsSnap.data ?? [];
-                          final openLeads = rawLeads.isNotEmpty
-                              ? rawLeads
-                              : (uid.isEmpty
-                                  ? [
-                                      Lead(
-                                        id: 'demo_lead_1',
-                                        requestId: 'demo_req_1',
-                                        providerId: effectiveUid,
-                                        category: 'Plumbing Repair',
-                                        areaLabel: 'Model Colony, Pune',
-                                        summary: 'Bathroom pipeline leakage urgent.',
-                                        fee: 25,
-                                        distanceM: 1200,
-                                        status: 'new',
-                                        createdAt: DateTime.now(),
-                                      ),
-                                    ]
-                                  : <Lead>[]);
+                          final openLeads = rawLeads;
 
                           return SingleChildScrollView(
                             padding: const EdgeInsets.all(16),

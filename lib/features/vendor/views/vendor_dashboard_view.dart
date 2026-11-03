@@ -122,25 +122,7 @@ class _VendorDashboardViewState extends State<VendorDashboardView> {
                 return const Center(child: CircularProgressIndicator(strokeWidth: 2));
               }
 
-              final listing = snapshot.data ??
-                  (uid.isEmpty
-                      ? Listing(
-                          id: 'demo_shop_1',
-                          kind: 'shop',
-                          name: 'Pune Hardware & Paints',
-                          category: 'Hardware',
-                          phone: '+91 98220 54321',
-                          address: 'FC Road, Deccan, Pune',
-                          ratingSum: 48,
-                          reviewCount: 10,
-                          verified: true,
-                          status: 'active',
-                          open24x7: false,
-                          opensAt: '09:00',
-                          closesAt: '21:00',
-                          tags: ['Pipes', 'Paints', 'Electrical', 'Tools'],
-                        )
-                      : null);
+              final listing = snapshot.data;
               if (listing == null) {
                 return const EmptyState(
                   title: 'No business listing found',

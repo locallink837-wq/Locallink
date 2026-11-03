@@ -118,7 +118,7 @@ class _RegisterPlaceViewState extends State<RegisterPlaceView> {
 
               UiTextInput(
                 label: 'Name of place / organization',
-                hintText: 'e.g. City Hospital, Pune',
+                hintText: 'e.g. City General Hospital',
                 controller: _nameController,
               ),
               const SizedBox(height: 14),

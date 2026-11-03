@@ -58,8 +58,7 @@ class _ShopDetailViewState extends State<ShopDetailView> {
         _fetchListingById(args);
         return;
       } else {
-        // Fallback demo shop for direct dev menu access
-        _listing = BrowseRepository.demoListings.firstWhere((l) => l.isShop);
+        _listing = BrowseRepository.demoListings.where((l) => l.isShop).firstOrNull;
       }
       _loadReviews();
     }
@@ -71,7 +70,7 @@ class _ShopDetailViewState extends State<ShopDetailView> {
       setState(
         () => _listing =
             fetched ??
-            BrowseRepository.demoListings.firstWhere((l) => l.isShop),
+            BrowseRepository.demoListings.where((l) => l.isShop).firstOrNull,
       );
       _loadReviews();
     }

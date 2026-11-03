@@ -16,10 +16,10 @@ class Env {
   // Emergency SOS Dispatch Hotline
   static const String emergencyPhone = '112';
 
-  // Demo fallback coordinates (Pune/Maharashtra center)
-  static const double defaultLatitude = 18.5204;
-  static const double defaultLongitude = 73.8567;
-  static const String defaultAreaLabel = 'Shivajinagar, Pune';
+  // Fallback coordinates (regional center; live GPS and user selection take priority)
+  static const double defaultLatitude = 17.6805;
+  static const double defaultLongitude = 74.0183;
+  static const String defaultAreaLabel = 'Current location';
 
   // Network & Request timeouts
   static const Duration requestTimeout = Duration(seconds: 15);

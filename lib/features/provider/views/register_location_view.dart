@@ -21,8 +21,8 @@ class RegisterLocationView extends StatefulWidget {
 class _RegisterLocationViewState extends State<RegisterLocationView> {
   final _addressController = TextEditingController();
   final _repo = ProviderRepository();
-  double _latitude = 18.5204; // Default Pune fallback
-  double _longitude = 73.8567;
+  double _latitude = Env.defaultLatitude;
+  double _longitude = Env.defaultLongitude;
   String? _errorMessage;
   bool _isSubmitting = false;
 
@@ -152,7 +152,7 @@ class _RegisterLocationViewState extends State<RegisterLocationView> {
 
               UiTextInput(
                 label: 'Work address / Area name',
-                hintText: 'e.g. Kothrud, Pune - 411038',
+                hintText: 'e.g. Area or Pincode',
                 controller: _addressController,
                 maxLines: 2,
               ),

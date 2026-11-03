@@ -204,7 +204,42 @@ class VendorRepository {
         SetOptions(merge: true),
       );
 
-      await batch.commit();
+      try {
+        await batch.commit();
+      } catch (batchErr) {
+        debugPrint('Firestore submitShopRegistration batch notice, trying direct write: $batchErr');
+        await listingRef.set({
+          'kind': 'shop',
+          'name': name,
+          'category': category,
+          'phone': phone,
+          'address': address,
+          'location': geoPoint,
+          'latitude': latitude,
+          'longitude': longitude,
+          'geohash': geohash,
+          'tags': products,
+          'open24x7': open24x7,
+          'opensAt': opensAt,
+          'closesAt': closesAt,
+          'weeklyOff': weeklyOff,
+          'verified': true,
+          'status': 'active',
+          'photoUrls': photoUrl != null ? [photoUrl] : <String>[],
+          'ratingSum': 0,
+          'reviewCount': 0,
+          'ownerId': uid,
+          'createdAt': now,
+        });
+        await userRef.set(
+          {
+            'role': 'shopOwner',
+            'onboardingDone': true,
+            'createdAt': now,
+          },
+          SetOptions(merge: true),
+        );
+      }
     } catch (e) {
       debugPrint('Firestore submitShopRegistration notice: $e');
     }
@@ -288,7 +323,40 @@ class VendorRepository {
         SetOptions(merge: true),
       );
 
-      await batch.commit();
+      try {
+        await batch.commit();
+      } catch (batchErr) {
+        debugPrint('Firestore submitPlaceRegistration batch notice, trying direct write: $batchErr');
+        await listingRef.set({
+          'kind': 'place',
+          'name': name,
+          'category': category,
+          'highlight': categoryDetails,
+          'phone': phone,
+          'address': address,
+          'location': geoPoint,
+          'latitude': latitude,
+          'longitude': longitude,
+          'geohash': geohash,
+          'tags': [category],
+          'open24x7': open24x7,
+          'verified': true,
+          'status': 'active',
+          'photoUrls': <String>[],
+          'ratingSum': 0,
+          'reviewCount': 0,
+          'ownerId': uid,
+          'createdAt': now,
+        });
+        await userRef.set(
+          {
+            'role': 'placeOwner',
+            'onboardingDone': true,
+            'createdAt': now,
+          },
+          SetOptions(merge: true),
+        );
+      }
     } catch (e) {
       debugPrint('Firestore submitPlaceRegistration notice: $e');
     }

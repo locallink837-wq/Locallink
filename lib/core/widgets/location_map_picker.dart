@@ -59,7 +59,9 @@ class _LocationMapPickerState extends State<LocationMapPicker> {
   }
 
   bool _isDefaultFallbackLocation(double lat, double lng) {
-    return (lat - Env.defaultLatitude).abs() < 0.001 && (lng - Env.defaultLongitude).abs() < 0.001;
+    final isEnvDefault = (lat - Env.defaultLatitude).abs() < 0.001 && (lng - Env.defaultLongitude).abs() < 0.001;
+    final isOldPuneDefault = (lat - 18.5204).abs() < 0.01 && (lng - 73.8567).abs() < 0.01;
+    return isEnvDefault || isOldPuneDefault;
   }
 
   @override

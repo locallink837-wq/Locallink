@@ -58,8 +58,7 @@ class _ProviderDetailViewState extends State<ProviderDetailView> {
         _fetchListingById(args);
         return;
       } else {
-        // Fallback demo service for direct dev menu access
-        _listing = BrowseRepository.demoListings.firstWhere((l) => l.isService);
+        _listing = BrowseRepository.demoListings.where((l) => l.isService).firstOrNull;
       }
       _loadReviews();
     }
@@ -71,7 +70,7 @@ class _ProviderDetailViewState extends State<ProviderDetailView> {
       setState(
         () => _listing =
             fetched ??
-            BrowseRepository.demoListings.firstWhere((l) => l.isService),
+            BrowseRepository.demoListings.where((l) => l.isService).firstOrNull,
       );
       _loadReviews();
     }

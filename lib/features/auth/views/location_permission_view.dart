@@ -126,7 +126,7 @@ class _AreaSheetState extends State<_AreaSheet> {
             UiTextInput(
               label: 'Area or locality',
               controller: _controller,
-              hintText: 'e.g. Shivajinagar, Pune',
+              hintText: 'e.g. City or Area name',
             ),
             AuthErrorBanner(_error),
             const SizedBox(height: 16),

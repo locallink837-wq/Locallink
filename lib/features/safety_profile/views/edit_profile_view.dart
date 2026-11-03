@@ -55,9 +55,9 @@ class _EditProfileViewState extends State<EditProfileView> {
           _areaController.text = appUser.area;
         }
       } else {
-        _nameController.text = 'Meera Joshi';
-        _phoneController.text = '+91 98220 12345';
-        _areaController.text = 'Kothrud, Pune';
+        _nameController.text = '';
+        _phoneController.text = '';
+        _areaController.text = '';
       }
     } catch (_) {}
   }

@@ -58,7 +58,7 @@ class _ServiceAreaViewState extends State<ServiceAreaView> {
       if (provData != null) {
         _radiusKm = (provData['radiusKm'] as num?)?.toDouble() ?? 5.0;
         _addressController.text =
-            provData['address']?.toString() ?? 'Kothrud, Pune';
+            provData['address']?.toString() ?? (LocationService.lastKnownArea ?? '');
 
         final loc = provData['serviceLocation'];
         if (loc != null) {
@@ -222,7 +222,7 @@ class _ServiceAreaViewState extends State<ServiceAreaView> {
                     const SizedBox(height: 6),
                     UiTextInput(
                       label: '',
-                      hintText: 'Enter area name (e.g. Kothrud, Pune)',
+                      hintText: 'Enter area or city name',
                       controller: _addressController,
                       maxLines: 2,
                     ),

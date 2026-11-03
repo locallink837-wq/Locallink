@@ -37,7 +37,7 @@ class _RequestFormViewState extends State<RequestFormView> {
   void initState() {
     super.initState();
     _addressController = TextEditingController(
-      text: LocationService.lastKnownArea ?? 'Shivajinagar, Pune',
+      text: LocationService.lastKnownArea ?? '',
     );
   }
 
