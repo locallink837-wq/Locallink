@@ -495,9 +495,11 @@ class _MapViewState extends State<MapView> {
                       'Shops (${_allListings.where((l) => l.isShop).length})',
                       AppColors.amber,
                     ),
-                  ],
+                      ],
+                    ),
+                  ),
                 ),
-              ),
+              ],
             ),
           ),
 
