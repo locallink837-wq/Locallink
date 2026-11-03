@@ -119,6 +119,7 @@ class BrowseRepository {
     if (firestore != null) {
       try {
         Query<Map<String, dynamic>> query = firestore.collection(FsPaths.listings);
+        query = query.where('status', isEqualTo: 'active');
 
         if (kind != null && kind.isNotEmpty) {
           query = query.where('kind', isEqualTo: kind);
@@ -135,7 +136,11 @@ class BrowseRepository {
       } catch (e) {
         debugPrint('Firestore fetchListings error: $e');
         try {
-          final rawSnap = await firestore.collection(FsPaths.listings).limit(limit).get();
+          final rawSnap = await firestore
+              .collection(FsPaths.listings)
+              .where('status', isEqualTo: 'active')
+              .limit(limit)
+              .get();
           results = rawSnap.docs
               .map((doc) => Listing.fromMap(doc.id, doc.data()))
               .where((l) => (kind == null || l.kind == kind) && l.status != 'blocked')
@@ -243,6 +248,14 @@ class BrowseRepository {
             final matchCat = l.category.toLowerCase().contains(catLower);
             final matchTags = l.tags.any((t) => t.toLowerCase().contains(catLower));
             return matchCat || matchTags;
+          }).toList();
+        }
+        if (city != null && city.trim().isNotEmpty && city.toLowerCase().trim() != 'all') {
+          final cLower = city.toLowerCase().trim();
+          list = list.where((l) {
+            if (l.city.toLowerCase().contains(cLower)) return true;
+            if (l.address.toLowerCase().contains(cLower)) return true;
+            return false;
           }).toList();
         }
         yield list;
