@@ -1,90 +1,191 @@
 rules_version = '2';
 
+// LocaLink Firestore rules - Production & Clean Architecture
+// Configured to allow customers to discover services/places while protecting private data.
+
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // 1. Listings (Services, Shops, Places)
-    // Public read so guests and all customers can view active listings everywhere.
-    // Authenticated users can create or edit their listings.
-    match /listings/{listingId} {
-      allow read: if true;
-      allow write: if request.auth != null;
-
-      match /reviews/{reviewId} {
-        allow read: if true;
-        allow write: if request.auth != null;
-      }
+    // ---------- helpers ----------
+    function signedIn() {
+      return request.auth != null;
+    }
+    // Any signed-in user (including guest sessions)
+    function isReal() {
+      return signedIn();
+    }
+    function uid() {
+      return request.auth.uid;
+    }
+    function isAdmin() {
+      return isReal() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+    function reqData(rid) {
+      return get(/databases/$(database)/documents/requests/$(rid)).data;
+    }
+    function isParticipant(rid) {
+      return isReal() && (reqData(rid).customerId == uid() || reqData(rid).providerId == uid());
+    }
+    function ownsDoc() {
+      return isReal() && resource.data.get('userId', resource.data.get('providerId', '')) == uid();
+    }
+    function changedKeys() {
+      return request.resource.data.diff(resource.data).affectedKeys();
     }
 
-    // 2. App configuration (categories, shopProducts, etc.)
+    // ---------- admins / config ----------
+    match /admins/{adminId} {
+      allow read: if isReal() && adminId == uid();
+      allow write: if false;
+    }
+
     match /config/{docId} {
-      allow read: if true;
-      allow write: if request.auth != null;
+      allow read: if true; // Public read fixes the "shopProducts is missing" warning
+      allow write: if isAdmin();
     }
 
-    // 3. User profiles and subcollections (devices, emergency contacts, notifications)
+    // ---------- users ----------
     match /users/{userId} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow create: if signedIn() && userId == uid();
+      // Allow users to update their profile and upgrade roles (e.g. customer -> provider / placeOwner)
+      allow update: if signedIn() && (userId == uid() || isAdmin());
+      allow delete: if false;
 
-      match /{allSubcollections=**} {
-        allow read, write: if request.auth != null;
+      match /devices/{token} {
+        allow read, write: if signedIn() && userId == uid();
+      }
+      match /emergency_contacts/{contactId} {
+        allow read, write: if signedIn() && userId == uid();
+      }
+      match /notifications/{notifId} {
+        allow read: if signedIn() && userId == uid();
+        allow update: if signedIn() && userId == uid() && changedKeys().hasOnly(['read']);
+        allow create, delete: if false;
       }
     }
 
-    // 4. Providers collection (private profile & documents)
-    match /providers/{providerId} {
-      allow read, write: if request.auth != null;
-    }
+    // ---------- listings (service provider, place, shop) ----------
+    match /listings/{listingId} {
+      // Public read: any customer/guest can view active listings
+      allow read: if true;
 
-    // 5. Service requests, leads, messages, live GPS tracking
-    match /requests/{requestId} {
-      allow read, write: if request.auth != null;
+      // Authenticated owners can create their listing
+      allow create: if signedIn()
+        && request.resource.data.ownerId == uid()
+        && request.resource.data.status in ['pending', 'active'];
 
-      match /{allSubcollections=**} {
-        allow read, write: if request.auth != null;
+      // Owner or Admin can update their listing
+      allow update: if isAdmin()
+        || (signedIn() && resource.data.ownerId == uid());
+      allow delete: if isAdmin() || (signedIn() && resource.data.ownerId == uid());
+
+      // Reviews
+      match /reviews/{reviewerId} {
+        allow read: if true;
+        allow create: if signedIn() && reviewerId == uid();
+        allow update, delete: if false;
       }
     }
 
-    match /leads/{leadId} {
-      allow read, write: if request.auth != null;
+    // views / calls / directions counters
+    match /listing_stats/{listingId} {
+      allow read: if signedIn();
+      allow write: if signedIn();
     }
 
-    // 6. Emergency SOS, feedback, reports, and claims
-    match /sos_events/{eventId} {
-      allow read, write: if request.auth != null;
-    }
-
-    match /feedback/{feedbackId} {
-      allow read, write: if request.auth != null;
-    }
-
+    // ---------- reports and claims ----------
     match /reports/{reportId} {
-      allow read, write: if request.auth != null;
+      allow create: if signedIn();
+      allow read: if isAdmin();
+      allow update, delete: if false;
     }
 
     match /claims/{claimId} {
-      allow read, write: if request.auth != null;
+      allow read: if isAdmin() || (signedIn() && resource.data.claimantId == uid());
+      allow create: if signedIn() && request.resource.data.claimantId == uid();
+      allow update: if isAdmin();
+      allow delete: if false;
     }
 
-    match /listing_stats/{listingId} {
-      allow read, write: if request.auth != null;
+    // ---------- service requests ----------
+    match /requests/{requestId} {
+      allow read: if signedIn() && (
+        resource.data.customerId == uid()
+        || resource.data.providerId == uid()
+        || isAdmin()
+      );
+
+      allow create: if signedIn()
+        && request.resource.data.customerId == uid();
+
+      allow update: if signedIn() && (
+        // customer cancels or provider updates progress
+        (resource.data.customerId == uid() && request.resource.data.status == 'cancelled')
+        || (resource.data.providerId == uid())
+        || isAdmin()
+      );
+      allow delete: if false;
+
+      match /private/{docId} {
+        allow read, write: if signedIn();
+      }
+
+      match /messages/{messageId} {
+        allow read: if isParticipant(requestId);
+        allow create: if signedIn() && request.resource.data.senderId == uid();
+        allow update, delete: if false;
+      }
+
+      match /live/{docId} {
+        allow read, write: if signedIn();
+      }
     }
 
-    // 7. Backward compatibility for direct places or shops matches
-    match /places/{placeId} {
-      allow read: if true;
-      allow write: if request.auth != null;
+    // ---------- leads ----------
+    match /leads/{leadId} {
+      allow read, write: if signedIn();
     }
 
-    match /shops/{shopId} {
-      allow read: if true;
-      allow write: if request.auth != null;
+    // ---------- providers (PRIVATE) ----------
+    match /providers/{providerId} {
+      allow read: if signedIn() && (providerId == uid() || isAdmin());
+      allow create: if signedIn() && providerId == uid();
+      allow update: if signedIn() && (providerId == uid() || isAdmin());
+      allow delete: if false;
     }
 
-    // Master catch-all for authenticated users
-    match /{document=**} {
-      allow read, write: if request.auth != null;
+    // ---------- money ----------
+    match /wallets/{walletId} {
+      allow read: if signedIn() && walletId == uid();
+      allow write: if false;
+    }
+    match /wallet_txns/{txnId} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+    match /payments/{paymentId} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
+    // ---------- AI ----------
+    match /ai_sessions/{sessionId} {
+      allow read, write: if signedIn();
+    }
+    match /plans/{planId} {
+      allow read, write: if signedIn();
+    }
+
+    // ---------- feedback and SOS ----------
+    match /feedback/{feedbackId} {
+      allow create: if signedIn();
+      allow read: if isAdmin();
+      allow update, delete: if false;
+    }
+
+    match /sos_events/{eventId} {
+      allow create, read, update: if signedIn();
     }
   }
 }

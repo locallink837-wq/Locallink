@@ -150,7 +150,7 @@ class LocationService {
         }
       }
     } catch (e) {
-      debugPrint('Reverse geocode error: $e');
+      // Android native Geocoder returns null when offline or on emulators; fallback is handled below
     }
 
     if (area.isEmpty) {

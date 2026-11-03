@@ -117,6 +117,17 @@ class VendorRepository {
     }
   }
 
+  String _extractCity(String address) {
+    final addrLower = address.toLowerCase();
+    if (addrLower.contains('pune')) return 'Pune';
+    if (addrLower.contains('mumbai')) return 'Mumbai';
+    if (addrLower.contains('satara')) return 'Satara';
+    if (addrLower.contains('kolhapur')) return 'Kolhapur';
+    final parts = address.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+    if (parts.isNotEmpty) return parts.last;
+    return 'Satara';
+  }
+
   /// Submit Shop registration atomically in a single batch.
   Future<void> submitShopRegistration({
     required String listingId,
@@ -137,6 +148,7 @@ class VendorRepository {
     final now = FieldValue.serverTimestamp();
     final geoPoint = GeoPoint(latitude, longitude);
     final geohash = GeoFirePoint(geoPoint).geohash;
+    final city = _extractCity(address);
 
     // Register locally immediately so Customer side can see it
     final newListing = Listing(
@@ -146,6 +158,7 @@ class VendorRepository {
       category: category,
       phone: phone,
       address: address,
+      city: city,
       location: geoPoint,
       latitude: latitude,
       longitude: longitude,
@@ -170,6 +183,8 @@ class VendorRepository {
         'category': category,
         'phone': phone,
         'address': address,
+        'city': city,
+        'isActive': true,
         'location': geoPoint,
         'latitude': latitude,
         'longitude': longitude,
@@ -262,6 +277,8 @@ class VendorRepository {
     final geoPoint = GeoPoint(latitude, longitude);
     final geohash = GeoFirePoint(geoPoint).geohash;
 
+    final city = _extractCity(address);
+
     // Register locally immediately so Customer side can see it
     final newListing = Listing(
       id: listingId,
@@ -271,6 +288,7 @@ class VendorRepository {
       highlight: categoryDetails,
       phone: phone,
       address: address,
+      city: city,
       location: geoPoint,
       latitude: latitude,
       longitude: longitude,
@@ -292,6 +310,8 @@ class VendorRepository {
         'highlight': categoryDetails,
         'phone': phone,
         'address': address,
+        'city': city,
+        'isActive': true,
         'location': geoPoint,
         'latitude': latitude,
         'longitude': longitude,

@@ -87,33 +87,6 @@ class _VendorDashboardViewState extends State<VendorDashboardView> {
             ),
           ],
         ),
-        bottomNavigationBar: NavigationBar(
-          selectedIndex: 0,
-          onDestinationSelected: (idx) {
-            if (idx == 1) {
-              Navigator.pushNamed(context, EditListingView.route);
-            } else if (idx == 2) {
-              Navigator.pushNamed(context, ProfileView.route);
-            }
-          },
-          destinations: const [
-            NavigationDestination(
-              icon: Icon(Icons.storefront_outlined),
-              selectedIcon: Icon(Icons.storefront_rounded, color: UiColors.amber),
-              label: 'Dashboard',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.edit_note_rounded),
-              selectedIcon: Icon(Icons.edit_note_rounded, color: UiColors.amber),
-              label: 'Edit Info',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.person_outline),
-              selectedIcon: Icon(Icons.person, color: UiColors.amber),
-              label: 'Profile',
-            ),
-          ],
-        ),
         body: SafeArea(
           child: StreamBuilder<Listing?>(
             stream: _repo.streamOwnerListing(effectiveUid),

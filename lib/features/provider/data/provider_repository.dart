@@ -201,6 +201,21 @@ class ProviderRepository {
       'submittedAt': now,
     });
 
+    String city = 'Satara';
+    final addrLower = address.toLowerCase();
+    if (addrLower.contains('pune')) {
+      city = 'Pune';
+    } else if (addrLower.contains('mumbai')) {
+      city = 'Mumbai';
+    } else if (addrLower.contains('satara')) {
+      city = 'Satara';
+    } else if (addrLower.contains('kolhapur')) {
+      city = 'Kolhapur';
+    } else {
+      final parts = address.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+      if (parts.isNotEmpty) city = parts.last;
+    }
+
     // 3. Register immediately into BrowseRepository so customer can see it with zero delay
     final newListing = Listing(
       id: uid,
@@ -210,6 +225,7 @@ class ProviderRepository {
       tags: services,
       phone: phone,
       address: address,
+      city: city,
       location: geoPoint,
       latitude: latitude,
       longitude: longitude,
@@ -229,6 +245,8 @@ class ProviderRepository {
       'tags': services,
       'phone': phone,
       'address': address,
+      'city': city,
+      'isActive': true,
       'location': geoPoint,
       'latitude': latitude,
       'longitude': longitude,

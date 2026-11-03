@@ -92,25 +92,34 @@ class RequestsRepository {
     required String urgency, // 'now' | 'today' | 'schedule' | 'sos'
   }) async {
     // Ensure customer doc exists with role == 'customer' so Firestore security rules pass
-    final userRef = _firestore.collection(FsPaths.users).doc(customerId);
-    final userDoc = await userRef.get();
-    if (!userDoc.exists) {
-      await userRef.set({
-        'role': 'customer',
-        'name': customerName,
-        'phone': customerPhone,
-        'onboardingDone': true,
-        'createdAt': FieldValue.serverTimestamp(),
-      });
+    try {
+      final userRef = _firestore.collection(FsPaths.users).doc(customerId);
+      final userDoc = await userRef.get();
+      if (!userDoc.exists || userDoc.data()?['role'] == null) {
+        await userRef.set({
+          'uid': customerId,
+          'role': 'customer',
+          'name': customerName,
+          'phone': customerPhone,
+          'onboardingDone': true,
+          'updatedAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+      }
+    } catch (e) {
+      debugPrint('Warning ensuring customer role in users doc: $e');
     }
 
-    final batch = _firestore.batch();
     final now = FieldValue.serverTimestamp();
     final geoPoint = GeoPoint(latitude, longitude);
 
-    // 1. requests/{id}
+    // Map urgency to values accepted by strict Firestore rules ('normal', 'urgent', 'sos')
+    final safeUrgency = (urgency == 'now' || urgency == 'urgent')
+        ? 'urgent'
+        : (urgency == 'sos' ? 'sos' : 'normal');
+
+    // 1. Write the main requests/{id} document first so it exists in DB for subcollection rules
     final reqRef = _firestore.collection(FsPaths.requests).doc(requestId);
-    batch.set(reqRef, {
+    await reqRef.set({
       'customerId': customerId,
       'customerName': customerName,
       'providerId': null,
@@ -119,24 +128,28 @@ class RequestsRepository {
       'photoUrls': photoUrls,
       'location': geoPoint,
       'address': roughAddress,
-      'urgency': urgency,
+      'urgency': safeUrgency,
       'status': 'searching',
       'createdAt': now,
     });
 
     // 2. requests/{id}/private/contact
-    final contactRef = _firestore
-        .collection(FsPaths.requests)
-        .doc(requestId)
-        .collection(FsPaths.privateContact)
-        .doc('contact');
+    try {
+      final contactRef = _firestore
+          .collection(FsPaths.requests)
+          .doc(requestId)
+          .collection(FsPaths.privateContact)
+          .doc('contact');
 
-    batch.set(contactRef, {
-      'name': customerName,
-      'phone': customerPhone,
-      'address': exactAddress.isNotEmpty ? exactAddress : roughAddress,
-      'createdAt': now,
-    });
+      await contactRef.set({
+        'name': customerName,
+        'phone': customerPhone,
+        'address': exactAddress.isNotEmpty ? exactAddress : roughAddress,
+        'createdAt': now,
+      });
+    } catch (e) {
+      debugPrint('Firestore private contact write notice: $e');
+    }
 
     // 3. Broadcast lead to matching providers (leads collection)
     final maskedPhone = customerPhone.length > 5
@@ -157,24 +170,22 @@ class RequestsRepository {
     );
     ProviderRepository.broadcastLeadLocally(lead);
 
-    final leadRef = _firestore.collection(FsPaths.leads).doc(leadId);
-    batch.set(leadRef, {
-      'requestId': requestId,
-      'providerId': '',
-      'status': 'new',
-      'category': category,
-      'problemTitle': description,
-      'roughArea': roughAddress,
-      'urgency': urgency,
-      'fee': 25,
-      'customerPhoneMasked': maskedPhone,
-      'createdAt': now,
-    });
-
     try {
-      await batch.commit();
+      final leadRef = _firestore.collection(FsPaths.leads).doc(leadId);
+      await leadRef.set({
+        'requestId': requestId,
+        'providerId': '',
+        'status': 'new',
+        'category': category,
+        'problemTitle': description,
+        'roughArea': roughAddress,
+        'urgency': safeUrgency,
+        'fee': 25,
+        'customerPhoneMasked': maskedPhone,
+        'createdAt': now,
+      });
     } catch (e) {
-      debugPrint('Firestore createRequest batch commit notice: $e');
+      debugPrint('Firestore lead broadcast notice: $e');
     }
   }
 

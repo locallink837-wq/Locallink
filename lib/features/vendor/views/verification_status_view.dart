@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../../../app/shells/vendor_shell.dart';
 import '../../../core/models/listing.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/ui_kit.dart';
@@ -131,7 +132,7 @@ class VerificationStatusView extends StatelessWidget {
                         label: 'Open vendor dashboard',
                         customAccent: UiColors.amber,
                         onPressed: () {
-                          Navigator.pushNamedAndRemoveUntil(context, VendorDashboardView.route, (r) => false);
+                          Navigator.pushNamedAndRemoveUntil(context, VendorShell.route, (r) => false);
                         },
                       ),
                       const SizedBox(height: 14),
@@ -149,7 +150,7 @@ class VerificationStatusView extends StatelessWidget {
                     'Our moderation team is reviewing your storefront photos and details. Listings are typically verified within 2 to 4 hours.',
                 primaryButtonText: 'Go to dashboard',
                 onPrimaryPressed: () {
-                  Navigator.pushNamedAndRemoveUntil(context, VendorDashboardView.route, (r) => false);
+                  Navigator.pushNamedAndRemoveUntil(context, VendorShell.route, (r) => false);
                 },
                 secondaryButtonText: 'Log out',
                 onSecondaryPressed: () async {

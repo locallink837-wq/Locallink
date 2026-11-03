@@ -107,6 +107,7 @@ class BrowseRepository {
   /// Fetch active Firestore listings; seamlessly merges demo listings and any newly registered providers.
   Future<List<Listing>> fetchListings({
     String? kind,
+    String? city,
     String? category,
     bool? verifiedOnly,
     bool? openNowOnly,
@@ -118,6 +119,7 @@ class BrowseRepository {
     if (firestore != null) {
       try {
         Query<Map<String, dynamic>> query = firestore.collection(FsPaths.listings);
+        query = query.where('status', isEqualTo: 'active');
 
         if (kind != null && kind.isNotEmpty) {
           query = query.where('kind', isEqualTo: kind);
@@ -134,7 +136,11 @@ class BrowseRepository {
       } catch (e) {
         debugPrint('Firestore fetchListings error: $e');
         try {
-          final rawSnap = await firestore.collection(FsPaths.listings).limit(limit).get();
+          final rawSnap = await firestore
+              .collection(FsPaths.listings)
+              .where('status', isEqualTo: 'active')
+              .limit(limit)
+              .get();
           results = rawSnap.docs
               .map((doc) => Listing.fromMap(doc.id, doc.data()))
               .where((l) => (kind == null || l.kind == kind) && l.status != 'blocked')
@@ -177,6 +183,16 @@ class BrowseRepository {
       }).toList();
     }
 
+    // Filter by city
+    if (city != null && city.trim().isNotEmpty && city.toLowerCase().trim() != 'all') {
+      final cLower = city.toLowerCase().trim();
+      list = list.where((l) {
+        if (l.city.toLowerCase().contains(cLower)) return true;
+        if (l.address.toLowerCase().contains(cLower)) return true;
+        return false;
+      }).toList();
+    }
+
     if (verifiedOnly == true) {
       list = list.where((l) => l.verified).toList();
     }
@@ -190,12 +206,13 @@ class BrowseRepository {
   /// Real-time stream of listings from Firestore
   Stream<List<Listing>> streamListings({
     String? kind,
+    String? city,
     String? category,
     int limit = 50,
   }) async* {
     final firestore = _firestore;
     if (firestore == null) {
-      yield _filterMockListings(kind, category);
+      yield _filterMockListings(kind: kind, category: category, city: city);
       return;
     }
 
@@ -233,17 +250,26 @@ class BrowseRepository {
             return matchCat || matchTags;
           }).toList();
         }
+        if (city != null && city.trim().isNotEmpty && city.toLowerCase().trim() != 'all') {
+          final cLower = city.toLowerCase().trim();
+          list = list.where((l) {
+            if (l.city.toLowerCase().contains(cLower)) return true;
+            if (l.address.toLowerCase().contains(cLower)) return true;
+            return false;
+          }).toList();
+        }
         yield list;
       }
     } catch (e) {
       debugPrint('Stream listings error: $e');
-      yield _filterMockListings(kind, category);
+      yield _filterMockListings(kind: kind, category: category, city: city);
     }
   }
 
-  List<Listing> _filterMockListings(
+  List<Listing> _filterMockListings({
     String? kind,
-    String? category, {
+    String? city,
+    String? category,
     bool? verifiedOnly,
     bool? openNowOnly,
   }) {
@@ -272,6 +298,16 @@ class BrowseRepository {
           )
           .toList();
     }
+    // Filter by city
+    if (city != null && city.trim().isNotEmpty && city.toLowerCase().trim() != 'all') {
+      final cLower = city.toLowerCase().trim();
+      list = list.where((l) {
+        if (l.city.toLowerCase().contains(cLower)) return true;
+        if (l.address.toLowerCase().contains(cLower)) return true;
+        return false;
+      }).toList();
+    }
+
     if (verifiedOnly == true) {
       list = list.where((l) => l.verified).toList();
     }
@@ -310,6 +346,7 @@ class BrowseRepository {
   Future<List<Listing>> searchListings(
     String query, {
     String? kind,
+    String? city,
     String? category,
   }) async {
     final cleanQuery = query.trim().toLowerCase();
@@ -334,8 +371,9 @@ class BrowseRepository {
     required double userLat,
     required double userLng,
     String? kind,
+    String? city,
   }) async {
-    final listings = await fetchListings(kind: kind);
+    final listings = await fetchListings(kind: kind, city: city);
     return _locationService.sortByDistanceAndVerified(
       listings: listings,
       userLat: userLat,

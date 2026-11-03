@@ -83,32 +83,59 @@ class SafetyProfileRepository {
     required double lat,
     required double lng,
   }) async {
-    final reqRef = _firestore.collection(FsPaths.requests).doc();
-    final batch = _firestore.batch();
-    final now = FieldValue.serverTimestamp();
+    // 1. Ensure user doc exists with role == 'customer' so Firestore rules pass
+    try {
+      final userRef = _firestore.collection(FsPaths.users).doc(customerId);
+      final userSnap = await userRef.get();
+      if (!userSnap.exists || (userSnap.data()?['role'] == null)) {
+        await userRef.set({
+          'uid': customerId,
+          'role': 'customer',
+          'name': customerName,
+          'phone': customerPhone,
+          'updatedAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+      }
+    } catch (e) {
+      debugPrint('Warning ensuring customer role in users doc: $e');
+    }
 
-    batch.set(reqRef, {
+    final reqRef = _firestore.collection(FsPaths.requests).doc();
+    final now = FieldValue.serverTimestamp();
+    final geoPoint = GeoPoint(lat, lng);
+
+    // 2. Commit the main request first so it exists in DB for any subcollection rules
+    await reqRef.set({
       'customerId': customerId,
       'customerName': customerName,
       'category': category,
       'description': 'EMERGENCY: Urgent assistance requested via SOS.',
       'photoUrls': <String>[],
-      'location': GeoPoint(lat, lng),
+      'location': geoPoint,
       'address': address,
       'urgency': 'sos',
       'status': 'searching',
       'createdAt': now,
     });
 
-    final contactRef = reqRef.collection(FsPaths.privateContact).doc('contact');
-    batch.set(contactRef, {
-      'name': customerName,
-      'phone': customerPhone,
-      'address': address,
-      'createdAt': now,
-    });
+    // 3. Commit private contact details
+    try {
+      final contactRef = reqRef.collection(FsPaths.privateContact).doc('contact');
+      await contactRef.set({
+        'name': customerName,
+        'phone': customerPhone,
+        'address': address,
+        'createdAt': now,
+      });
+    } catch (e) {
+      debugPrint('Warning writing private contact subcollection: $e');
+    }
 
-    await batch.commit();
+    // 4. Log the SOS event
+    try {
+      await logSosEvent(lat: lat, lng: lng);
+    } catch (_) {}
+
     return reqRef.id;
   }
 
