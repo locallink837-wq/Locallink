@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 
+import '../../app/shells/vendor_shell.dart';
 import 'views/register_shop_view.dart';
 import 'views/shop_location_view.dart';
 import 'views/shop_hours_photo_view.dart';
@@ -20,8 +21,8 @@ final Map<String, WidgetBuilder> vendorRoutes = {
   RegisterPlaceView.route: (_) => const RegisterPlaceView(),
   PlaceLocationView.route: (_) => const PlaceLocationView(),
   ClaimListingView.route: (_) => const ClaimListingView(),
-  VendorDashboardView.route: (_) => const VendorDashboardView(),
-  '/vendor/dashboard': (_) => const VendorDashboardView(),
+  VendorDashboardView.route: (_) => const VendorShell(),
+  '/vendor/dashboard': (_) => const VendorShell(),
   EditListingView.route: (_) => const EditListingView(),
   VerificationStatusView.route: (_) => const VerificationStatusView(),
 };
