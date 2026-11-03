@@ -107,7 +107,9 @@ class BrowseRepository {
   /// Fetch active Firestore listings; seamlessly merges demo listings and any newly registered providers.
   Future<List<Listing>> fetchListings({
     String? kind,
+    String? city,
     String? category,
+    String? city,
     bool? verifiedOnly,
     bool? openNowOnly,
     int limit = 50,
@@ -177,6 +179,16 @@ class BrowseRepository {
       }).toList();
     }
 
+    // Filter by city
+    if (city != null && city.trim().isNotEmpty && city.toLowerCase().trim() != 'all') {
+      final cLower = city.toLowerCase().trim();
+      list = list.where((l) {
+        if (l.city.toLowerCase().contains(cLower)) return true;
+        if (l.address.toLowerCase().contains(cLower)) return true;
+        return false;
+      }).toList();
+    }
+
     if (verifiedOnly == true) {
       list = list.where((l) => l.verified).toList();
     }
@@ -190,6 +202,7 @@ class BrowseRepository {
   /// Real-time stream of listings from Firestore
   Stream<List<Listing>> streamListings({
     String? kind,
+    String? city,
     String? category,
     int limit = 50,
   }) async* {
@@ -243,7 +256,9 @@ class BrowseRepository {
 
   List<Listing> _filterMockListings(
     String? kind,
+    String? city,
     String? category, {
+    String? city,
     bool? verifiedOnly,
     bool? openNowOnly,
   }) {
@@ -272,6 +287,16 @@ class BrowseRepository {
           )
           .toList();
     }
+    // Filter by city
+    if (city != null && city.trim().isNotEmpty && city.toLowerCase().trim() != 'all') {
+      final cLower = city.toLowerCase().trim();
+      list = list.where((l) {
+        if (l.city.toLowerCase().contains(cLower)) return true;
+        if (l.address.toLowerCase().contains(cLower)) return true;
+        return false;
+      }).toList();
+    }
+
     if (verifiedOnly == true) {
       list = list.where((l) => l.verified).toList();
     }
@@ -310,6 +335,7 @@ class BrowseRepository {
   Future<List<Listing>> searchListings(
     String query, {
     String? kind,
+    String? city,
     String? category,
   }) async {
     final cleanQuery = query.trim().toLowerCase();
@@ -334,8 +360,9 @@ class BrowseRepository {
     required double userLat,
     required double userLng,
     String? kind,
+    String? city,
   }) async {
-    final listings = await fetchListings(kind: kind);
+    final listings = await fetchListings(kind: kind, city: city);
     return _locationService.sortByDistanceAndVerified(
       listings: listings,
       userLat: userLat,
