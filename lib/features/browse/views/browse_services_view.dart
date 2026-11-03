@@ -49,16 +49,6 @@ class _BrowseServicesViewState extends State<BrowseServicesView> {
   Future<void> _fetchServices() async {
     setState(() => _isLoading = true);
 
-    if (!_repository.hasRealUser) {
-      if (mounted) {
-        setState(() {
-          _services = [];
-          _isLoading = false;
-        });
-      }
-      return;
-    }
-
     final position = await _locationService.getCurrentPosition();
     _userLat = position.latitude;
     _userLng = position.longitude;
