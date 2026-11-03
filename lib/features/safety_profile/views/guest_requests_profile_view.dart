@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/widgets/ui_kit.dart';
+import '../../auth/state/auth_flow.dart';
 
 /// Screen 5.7: Guest Requests and Profile Gated State.
 /// Displayed when anonymous visitors attempt to view their profile or booking history.
@@ -61,6 +62,7 @@ class GuestRequestsProfileView extends StatelessWidget {
                   label: 'Log in',
                   customAccent: UiColors.teal,
                   onPressed: () {
+                    AuthFlow.mode = AuthMode.login;
                     Navigator.pushNamed(context, '/auth/sign-in');
                   },
                 ),

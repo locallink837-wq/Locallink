@@ -74,10 +74,7 @@ class _PhotoConsentViewState extends State<PhotoConsentView> {
   void _loadDemoPhoto() {
     setState(() {
       _selectedImageBytes = base64Decode(_kSamplePhotoBase64);
-      _selectedImageName = 'demo_water_leak.png';
-      if (_promptController.text.trim().isEmpty) {
-        _promptController.text = 'Bathroom tap pipe has continuous water leakage and low pressure.';
-      }
+      _selectedImageName = 'sample_fixture.png';
       _errorMessage = null;
     });
   }
@@ -95,11 +92,10 @@ class _PhotoConsentViewState extends State<PhotoConsentView> {
 
     try {
       final bytes = _selectedImageBytes!;
+      final userNote = _promptController.text.trim();
       final session = await _repo.diagnoseIssue(
         photoBytes: bytes,
-        userPrompt: _promptController.text.trim().isNotEmpty
-            ? _promptController.text.trim()
-            : 'Water leakage from plumbing pipe under sink',
+        userPrompt: userNote.isNotEmpty ? userNote : null,
         mimeType: 'image/jpeg',
       );
 
@@ -260,10 +256,10 @@ class _PhotoConsentViewState extends State<PhotoConsentView> {
                 ),
               const SizedBox(height: 20),
 
-              // Optional problem description
+              // Problem description
               UiTextInput(
-                label: 'What seems to be wrong? (Optional)',
-                hintText: 'e.g. Water is leaking continuously from the lower brass ring',
+                label: 'What assistance do you require? (Describe issue)',
+                hintText: 'e.g. Electrician for sparking switch, AC repair, water leak, carpentry...',
                 controller: _promptController,
                 maxLines: 2,
               ),
