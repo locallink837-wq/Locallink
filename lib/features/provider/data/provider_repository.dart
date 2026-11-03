@@ -3,6 +3,7 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:geoflutterfire_plus/geoflutterfire_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/constants/firestore_paths.dart';
@@ -161,14 +162,21 @@ class ProviderRepository {
     final geoPoint = GeoPoint(latitude, longitude);
     final geohash = GeoFirePoint(GeoPoint(latitude, longitude)).geohash;
 
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('cached_role_$uid', 'provider');
+      await prefs.setBool('is_provider_$uid', true);
+    } catch (_) {}
+
     // 1. users/{uid}
     final userRef = _firestore.collection(FsPaths.users).doc(uid);
     batch.set(
       userRef,
       {
         'role': 'provider',
-        'name': name,
+        'name': businessName.isNotEmpty ? businessName : name,
         'phone': phone,
+        'onboardingDone': true,
         'createdAt': now,
       },
       SetOptions(merge: true),

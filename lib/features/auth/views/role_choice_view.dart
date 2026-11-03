@@ -59,9 +59,16 @@ class _RoleChoiceViewState extends State<RoleChoiceView> {
   }
 
   Future<void> _continue({required bool login}) async {
-    final role = _selected ?? (login ? UserRole.customer : null);
+    if (login) {
+      AuthFlow.mode = AuthMode.login;
+      AuthFlow.role = _selected;
+      Navigator.pushNamed(context, SignInView.route);
+      return;
+    }
+
+    final role = _selected;
     if (role == null || _busy) return;
-    AuthFlow.chooseRole(role, login: login);
+    AuthFlow.chooseRole(role, login: false);
 
     // Already logged in but the account was never finished: skip sign-in.
     if (_repo.isRealUser) {

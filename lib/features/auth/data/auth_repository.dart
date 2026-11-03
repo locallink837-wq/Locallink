@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart' show LocationPermission;
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/constants/enums.dart';
 import '../../../core/constants/firestore_paths.dart';
@@ -255,12 +256,110 @@ class AuthRepository {
   // ---------------------------------------------------------------------------
 
   Future<AppUser?> fetchProfile(String uid) async {
-    final snap = await _db.collection(FsPaths.users).doc(uid).get();
-    if (!snap.exists || snap.data() == null) return null;
-    final data = Map<String, dynamic>.from(snap.data()!);
-    final created = data['createdAt'];
-    if (created is Timestamp) data['createdAt'] = created.toDate();
-    return AppUser.fromMap(snap.id, data);
+    try {
+      final snap = await _db.collection(FsPaths.users).doc(uid).get();
+      if (snap.exists && snap.data() != null) {
+        final data = Map<String, dynamic>.from(snap.data()!);
+        final created = data['createdAt'];
+        if (created is Timestamp) data['createdAt'] = created.toDate();
+        final user = AppUser.fromMap(snap.id, data);
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('cached_role_$uid', user.role);
+        } catch (_) {}
+        return user;
+      }
+    } catch (e) {
+      debugPrint('Firestore fetchProfile users query notice: $e');
+    }
+
+    // Fallback 1: Check providers/{uid} in Firestore
+    try {
+      final pSnap = await _db.collection(FsPaths.providers).doc(uid).get();
+      if (pSnap.exists && pSnap.data() != null) {
+        final pData = pSnap.data()!;
+        final restored = AppUser(
+          uid: uid,
+          role: 'provider',
+          name: pData['displayName'] ?? 'Provider',
+          phone: '',
+          email: '',
+          area: pData['address'] ?? '',
+          language: 'en',
+          onboardingDone: true,
+          photoUrl: '',
+          createdAt: DateTime.now(),
+        );
+        try {
+          await _db.collection(FsPaths.users).doc(uid).set({
+            'role': 'provider',
+            'name': restored.name,
+            'onboardingDone': true,
+            'createdAt': FieldValue.serverTimestamp(),
+          }, SetOptions(merge: true));
+        } catch (_) {}
+        return restored;
+      }
+    } catch (_) {}
+
+    // Fallback 2: Check listings where ownerId == uid
+    try {
+      final lSnap = await _db
+          .collection(FsPaths.listings)
+          .where('ownerId', isEqualTo: uid)
+          .limit(1)
+          .get();
+      if (lSnap.docs.isNotEmpty) {
+        final lData = lSnap.docs.first.data();
+        final kind = (lData['kind'] ?? 'service').toString();
+        final role = kind == 'service'
+            ? 'provider'
+            : (kind == 'shop' ? 'shopOwner' : 'placeOwner');
+        final restored = AppUser(
+          uid: uid,
+          role: role,
+          name: lData['name'] ?? 'Owner',
+          phone: lData['phone'] ?? '',
+          email: '',
+          area: lData['address'] ?? '',
+          language: 'en',
+          onboardingDone: true,
+          photoUrl: '',
+          createdAt: DateTime.now(),
+        );
+        try {
+          await _db.collection(FsPaths.users).doc(uid).set({
+            'role': role,
+            'name': restored.name,
+            'onboardingDone': true,
+            'createdAt': FieldValue.serverTimestamp(),
+          }, SetOptions(merge: true));
+        } catch (_) {}
+        return restored;
+      }
+    } catch (_) {}
+
+    // Fallback 3: Check cached role in SharedPreferences
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final cachedRole = prefs.getString('cached_role_$uid');
+      if (cachedRole != null && cachedRole.isNotEmpty) {
+        return AppUser(
+          uid: uid,
+          role: cachedRole,
+          name: 'User',
+          phone: '',
+          email: '',
+          area: '',
+          language: 'en',
+          onboardingDone: true,
+          photoUrl: '',
+          createdAt: DateTime.now(),
+        );
+      }
+    } catch (_) {}
+
+    return null;
   }
 
   /// Creates the profile once. The role can never change afterwards (Firestore rule).
@@ -364,34 +463,11 @@ class AuthRepository {
         return const AuthDestination(AuthTargets.customerShell);
 
       case UserRole.provider:
-        try {
-          final snap = await _db.collection(FsPaths.providers).doc(u.uid).get();
-          if (!snap.exists) {
-            return const AuthDestination(AuthTargets.providerRegister);
-          }
-          return const AuthDestination(AuthTargets.providerShell);
-        } catch (e) {
-          debugPrint('Provider status lookup failed: $e');
-          return const AuthDestination(AuthTargets.providerShell);
-        }
+        return const AuthDestination(AuthTargets.providerShell);
 
       case UserRole.shopOwner:
       case UserRole.placeOwner:
-        final registerRoute = u.parsedRole == UserRole.shopOwner
-            ? AuthTargets.shopRegister
-            : AuthTargets.placeRegister;
-        try {
-          final q = await _db
-              .collection(FsPaths.listings)
-              .where('ownerId', isEqualTo: u.uid)
-              .limit(1)
-              .get();
-          if (q.docs.isEmpty) return AuthDestination(registerRoute);
-          return const AuthDestination(AuthTargets.vendorShell);
-        } catch (e) {
-          debugPrint('Listing lookup failed: $e');
-          return const AuthDestination(AuthTargets.vendorShell);
-        }
+        return const AuthDestination(AuthTargets.vendorShell);
     }
   }
 

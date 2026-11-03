@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:geoflutterfire_plus/geoflutterfire_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/constants/firestore_paths.dart';
@@ -185,11 +186,17 @@ class VendorRepository {
         'createdAt': now,
       });
 
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('cached_role_$uid', 'shopOwner');
+      } catch (_) {}
+
       final userRef = _firestore.collection(FsPaths.users).doc(uid);
       batch.set(
         userRef,
         {
           'role': 'shopOwner',
+          'onboardingDone': true,
           'createdAt': now,
         },
         SetOptions(merge: true),
@@ -261,11 +268,17 @@ class VendorRepository {
         'createdAt': now,
       });
 
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('cached_role_$uid', 'placeOwner');
+      } catch (_) {}
+
       final userRef = _firestore.collection(FsPaths.users).doc(uid);
       batch.set(
         userRef,
         {
           'role': 'placeOwner',
+          'onboardingDone': true,
           'createdAt': now,
         },
         SetOptions(merge: true),
