@@ -53,6 +53,7 @@ dependencies:
   latlong2: ^0.10.1
   google_generative_ai: ^0.4.7
   shared_preferences: ^2.5.6
+  flutter_launcher_icons: ^0.14.1
 
 dev_dependencies:
   flutter_test:
@@ -106,3 +107,15 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+flutter_launcher_icons:          
+  android: true
+  ios: true
+  image_path: "assets/icon/ll.png"
+  remove_alpha_ios: true
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/icon/ll.png"
+  web:
+    generate: true
+    image_path: "assets/icon/ll.png"
+    background_color: "#hexcode"
+    theme_color: "#hexcode"
