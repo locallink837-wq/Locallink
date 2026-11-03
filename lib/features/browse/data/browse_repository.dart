@@ -128,7 +128,7 @@ class BrowseRepository {
 
         final snapshot = await query.limit(limit).get();
         results = snapshot.docs
-            .map((doc) => Listing.fromMap(doc.id, doc.data() as Map<String, dynamic>))
+            .map((doc) => Listing.fromMap(doc.id, doc.data()))
             .where((l) => l.status != 'blocked')
             .toList();
       } catch (e) {
@@ -136,7 +136,7 @@ class BrowseRepository {
         try {
           final rawSnap = await firestore.collection(FsPaths.listings).limit(limit).get();
           results = rawSnap.docs
-              .map((doc) => Listing.fromMap(doc.id, doc.data() as Map<String, dynamic>))
+              .map((doc) => Listing.fromMap(doc.id, doc.data()))
               .where((l) => (kind == null || l.kind == kind) && l.status != 'blocked')
               .toList();
         } catch (_) {}

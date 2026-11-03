@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../../app/shells/provider_shell.dart';
+import '../../../core/config/env.dart';
 import '../../../core/services/location_service.dart';
 import '../../../core/widgets/location_map_picker.dart';
 import '../../../core/widgets/ui_kit.dart';
