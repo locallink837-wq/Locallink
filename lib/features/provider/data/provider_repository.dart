@@ -222,8 +222,7 @@ class ProviderRepository {
     BrowseRepository.registerCustomListing(newListing);
 
     // 4. listings/{uid} (public provider card in Firestore)
-    final listingRef = _firestore.collection(FsPaths.listings).doc(uid);
-    batch.set(listingRef, {
+    final listingData = {
       'kind': 'service',
       'name': businessName.isNotEmpty ? businessName : name,
       'category': services.isNotEmpty ? services.first : 'Services',
@@ -231,6 +230,8 @@ class ProviderRepository {
       'phone': phone,
       'address': address,
       'location': geoPoint,
+      'latitude': latitude,
+      'longitude': longitude,
       'geohash': geohash,
       'open24x7': open24x7,
       'languages': languages,
@@ -241,12 +242,29 @@ class ProviderRepository {
       'status': 'active',
       'ownerId': uid,
       'createdAt': now,
-    });
+    };
+    final listingRef = _firestore.collection(FsPaths.listings).doc(uid);
+    batch.set(listingRef, listingData);
 
     try {
       await batch.commit();
     } catch (e) {
       debugPrint('Firestore submitRegistration batch commit notice: $e');
+      // Direct fallback write in case batch failed due to subcollection rule
+      try {
+        await listingRef.set(listingData);
+      } catch (err) {
+        debugPrint('Direct listing write error: $err');
+      }
+      try {
+        await userRef.set({
+          'role': 'provider',
+          'name': businessName.isNotEmpty ? businessName : name,
+          'phone': phone,
+          'onboardingDone': true,
+          'createdAt': now,
+        }, SetOptions(merge: true));
+      } catch (_) {}
     }
   }
 

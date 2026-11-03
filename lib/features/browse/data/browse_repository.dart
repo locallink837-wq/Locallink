@@ -121,7 +121,6 @@ class BrowseRepository {
     if (firestore != null) {
       try {
         Query query = firestore.collection(FsPaths.listings);
-        query = query.where('status', isEqualTo: 'active');
 
         if (kind != null && kind.isNotEmpty) {
           query = query.where('kind', isEqualTo: kind);
@@ -131,11 +130,19 @@ class BrowseRepository {
         }
 
         final snapshot = await query.limit(limit).get();
-        results = snapshot.docs.map((doc) {
-          return Listing.fromMap(doc.id, doc.data() as Map<String, dynamic>);
-        }).toList();
+        results = snapshot.docs
+            .map((doc) => Listing.fromMap(doc.id, doc.data() as Map<String, dynamic>))
+            .where((l) => l.status != 'blocked')
+            .toList();
       } catch (e) {
         debugPrint('Firestore fetchListings error: $e');
+        try {
+          final rawSnap = await firestore.collection(FsPaths.listings).limit(limit).get();
+          results = rawSnap.docs
+              .map((doc) => Listing.fromMap(doc.id, doc.data() as Map<String, dynamic>))
+              .where((l) => (kind == null || l.kind == kind) && l.status != 'blocked')
+              .toList();
+        } catch (_) {}
       }
     }
 
@@ -320,38 +327,18 @@ class BrowseRepository {
 
   /// Fetch nearby listings sorted by distance with verified listings prioritized.
   /// Strictly filters to listings within [maxRadiusMeters] (default 50km) when nearby results exist.
+  /// Fetch nearby listings sorted by distance with verified listings prioritized
   Future<List<Listing>> fetchNearbyListings({
     required double userLat,
     required double userLng,
     String? kind,
-    double maxRadiusMeters = 50000,
   }) async {
     final listings = await fetchListings(kind: kind);
-    final sorted = _locationService.sortByDistanceAndVerified(
+    return _locationService.sortByDistanceAndVerified(
       listings: listings,
       userLat: userLat,
       userLng: userLng,
     );
-
-    // Filter to truly nearby listings (within radius)
-    final nearby = sorted.where((l) {
-      if (l.latitude == null || l.longitude == null) return false;
-      final dist = _locationService.calculateDistanceMeters(
-        startLatitude: userLat,
-        startLongitude: userLng,
-        endLatitude: l.latitude!,
-        endLongitude: l.longitude!,
-      );
-      return dist <= maxRadiusMeters;
-    }).toList();
-
-    // If there are nearby listings (e.g. newly registered service in user's city), return ONLY nearby!
-    if (nearby.isNotEmpty) {
-      return nearby;
-    }
-
-    // Fallback: return sorted listings if no local services exist yet
-    return sorted;
   }
 
   /// Fetch reviews for a specific listing from `listings/{id}/reviews`

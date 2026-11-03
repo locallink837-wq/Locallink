@@ -175,16 +175,7 @@ class _BrowseServicesViewState extends State<BrowseServicesView> {
 
           // Listings List
           Expanded(
-            child: !_repository.hasRealUser
-                ? EmptyState(
-                    title: 'Sign in to browse services',
-                    message: 'Verified service listings are available to signed-in customers.',
-                    icon: Icons.lock_outline_rounded,
-                    actionLabel: 'Sign In',
-                    onAction: () =>
-                        Navigator.pushNamed(context, '/auth/sign-in'),
-                  )
-                : _isLoading
+            child: _isLoading
                 ? const Center(
                     child: CircularProgressIndicator(color: AppColors.teal),
                   )
