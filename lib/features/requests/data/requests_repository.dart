@@ -150,11 +150,9 @@ class RequestsRepository {
       providerId: '',
       status: 'new',
       category: category,
-      problemTitle: description,
-      roughArea: roughAddress,
-      urgency: urgency,
+      summary: description,
+      areaLabel: roughAddress,
       fee: 25,
-      customerPhoneMasked: maskedPhone,
       createdAt: DateTime.now(),
     );
     ProviderRepository.broadcastLeadLocally(lead);

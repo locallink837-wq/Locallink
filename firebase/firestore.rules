@@ -75,13 +75,11 @@ service cloud.firestore {
 
     // ---------- listings (service provider, place, shop) ----------
     match /listings/{listingId} {
-      // guests: only ACTIVE places and shops. Real users: also ACTIVE services.
-      // Queries MUST include where status == 'active' (and kind in [place, shop] for guests).
+      // Any signed in user (guest or real) can discover active listings.
       allow read: if signedIn() && (
         isAdmin()
         || (isReal() && resource.data.ownerId == uid())
-        || (resource.data.status == 'active'
-            && (resource.data.kind in ['place', 'shop'] || isReal()))
+        || resource.data.status == 'active'
       );
 
       // owner creates a listing; a provider listing id = provider uid

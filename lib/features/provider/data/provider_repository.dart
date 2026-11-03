@@ -206,7 +206,6 @@ class ProviderRepository {
       latitude: latitude,
       longitude: longitude,
       open24x7: open24x7,
-      languages: languages,
       photoUrls: const [],
       verified: true,
       status: 'active',
@@ -379,11 +378,9 @@ class ProviderRepository {
           providerId: old.providerId,
           status: 'viewed',
           category: old.category,
-          problemTitle: old.problemTitle,
-          roughArea: old.roughArea,
-          urgency: old.urgency,
+          summary: old.summary,
+          areaLabel: old.areaLabel,
           fee: old.fee,
-          customerPhoneMasked: old.customerPhoneMasked,
           createdAt: old.createdAt,
         );
         break;
@@ -449,11 +446,9 @@ class ProviderRepository {
           providerId: currentUid ?? 'demo-provider',
           status: 'accepted',
           category: old.category,
-          problemTitle: old.problemTitle,
-          roughArea: old.roughArea,
-          urgency: old.urgency,
+          summary: old.summary,
+          areaLabel: old.areaLabel,
           fee: old.fee,
-          customerPhoneMasked: old.customerPhoneMasked,
           createdAt: old.createdAt,
         );
         break;
