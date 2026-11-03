@@ -87,7 +87,27 @@ class BrowseRepository {
   // In-memory fallback reviews cache so newly added reviews appear immediately in mock mode
   static final Map<String, List<Review>> _fallbackReviewsCache = {};
 
-  /// Fetch active Firestore listings; use demo data only when Firebase is unavailable in debug mode.
+  // In-memory dynamic listings cache: bridges new providers registered in the current session
+  static final List<Listing> _dynamicCustomListings = [];
+
+  static void registerCustomListing(Listing listing) {
+    _dynamicCustomListings.removeWhere((l) => l.id == listing.id);
+    _dynamicCustomListings.insert(0, listing);
+  }
+
+  static List<Listing> get dynamicCustomListings => List.unmodifiable(_dynamicCustomListings);
+
+  static Listing? fetchListingByIdSync(String id) {
+    for (final l in _dynamicCustomListings) {
+      if (l.id == id) return l;
+    }
+    for (final l in demoListings) {
+      if (l.id == id) return l;
+    }
+    return null;
+  }
+
+  /// Fetch active Firestore listings; seamlessly merges demo listings and any newly registered providers.
   Future<List<Listing>> fetchListings({
     String? kind,
     String? category,
@@ -95,48 +115,72 @@ class BrowseRepository {
     bool? openNowOnly,
     int limit = 50,
   }) async {
+    List<Listing> results = [];
     final firestore = _firestore;
+
     if (firestore != null) {
-      if (!_isRealUser && kind == 'service') return [];
       try {
         Query query = firestore.collection(FsPaths.listings);
         query = query.where('status', isEqualTo: 'active');
 
         if (kind != null && kind.isNotEmpty) {
           query = query.where('kind', isEqualTo: kind);
-        } else if (!_isRealUser) {
-          query = query.where('kind', whereIn: const ['place', 'shop']);
-        }
-        if (category != null && category.isNotEmpty) {
-          query = query.where('category', isEqualTo: category);
         }
         if (verifiedOnly == true) {
           query = query.where('verified', isEqualTo: true);
         }
 
         final snapshot = await query.limit(limit).get();
-        var results = snapshot.docs.map((doc) {
+        results = snapshot.docs.map((doc) {
           return Listing.fromMap(doc.id, doc.data() as Map<String, dynamic>);
         }).toList();
-
-        if (openNowOnly == true) {
-          results = results.where((l) => l.isOpenNow).toList();
-        }
-        return results;
       } catch (e) {
         debugPrint('Firestore fetchListings error: $e');
-        return [];
       }
     }
 
-    return kDebugMode
-        ? _filterMockListings(
-            kind,
-            category,
-            verifiedOnly: verifiedOnly,
-            openNowOnly: openNowOnly,
-          )
-        : [];
+    // Merge in-memory dynamic custom listings (created by provider in this session)
+    final allListingsMap = <String, Listing>{};
+    // 1. Add demo fallback listings if results are empty or in debug
+    if (results.isEmpty || kDebugMode) {
+      for (final l in demoListings) {
+        allListingsMap[l.id] = l;
+      }
+    }
+    // 2. Add Firestore listings (overwrites demo if matching ID)
+    for (final l in results) {
+      allListingsMap[l.id] = l;
+    }
+    // 3. Add dynamic custom registered listings (highest precedence)
+    for (final l in _dynamicCustomListings) {
+      allListingsMap[l.id] = l;
+    }
+
+    var list = allListingsMap.values.toList();
+
+    // Filter by kind
+    if (kind != null && kind.isNotEmpty) {
+      list = list.where((l) => l.kind == kind).toList();
+    }
+
+    // Filter by category (case-insensitive, matching either category OR tags)
+    if (category != null && category.isNotEmpty && category != 'All') {
+      final catLower = category.toLowerCase();
+      list = list.where((l) {
+        final matchCat = l.category.toLowerCase().contains(catLower);
+        final matchTags = l.tags.any((t) => t.toLowerCase().contains(catLower));
+        return matchCat || matchTags;
+      }).toList();
+    }
+
+    if (verifiedOnly == true) {
+      list = list.where((l) => l.verified).toList();
+    }
+    if (openNowOnly == true) {
+      list = list.where((l) => l.isOpenNow).toList();
+    }
+
+    return list;
   }
 
   /// Real-time stream of listings from Firestore
@@ -147,11 +191,7 @@ class BrowseRepository {
   }) async* {
     final firestore = _firestore;
     if (firestore == null) {
-      yield kDebugMode ? _filterMockListings(kind, category) : [];
-      return;
-    }
-    if (!_isRealUser && kind == 'service') {
-      yield [];
+      yield _filterMockListings(kind, category);
       return;
     }
 
@@ -160,21 +200,34 @@ class BrowseRepository {
       query = query.where('status', isEqualTo: 'active');
       if (kind != null && kind.isNotEmpty) {
         query = query.where('kind', isEqualTo: kind);
-      } else if (!_isRealUser) {
-        query = query.where('kind', whereIn: const ['place', 'shop']);
-      }
-      if (category != null && category.isNotEmpty) {
-        query = query.where('category', isEqualTo: category);
       }
 
       await for (final snapshot in query.limit(limit).snapshots()) {
-        yield snapshot.docs.map((doc) {
-          return Listing.fromMap(doc.id, doc.data() as Map<String, dynamic>);
-        }).toList();
+        final listMap = <String, Listing>{};
+        for (final doc in snapshot.docs) {
+          final l = Listing.fromMap(doc.id, doc.data() as Map<String, dynamic>);
+          listMap[l.id] = l;
+        }
+        for (final l in _dynamicCustomListings) {
+          listMap[l.id] = l;
+        }
+        var list = listMap.values.toList();
+        if (kind != null && kind.isNotEmpty) {
+          list = list.where((l) => l.kind == kind).toList();
+        }
+        if (category != null && category.isNotEmpty && category != 'All') {
+          final catLower = category.toLowerCase();
+          list = list.where((l) {
+            final matchCat = l.category.toLowerCase().contains(catLower);
+            final matchTags = l.tags.any((t) => t.toLowerCase().contains(catLower));
+            return matchCat || matchTags;
+          }).toList();
+        }
+        yield list;
       }
     } catch (e) {
       debugPrint('Stream listings error: $e');
-      yield [];
+      yield _filterMockListings(kind, category);
     }
   }
 
@@ -184,18 +237,25 @@ class BrowseRepository {
     bool? verifiedOnly,
     bool? openNowOnly,
   }) {
-    if (!_isRealUser && kind == 'service') return [];
-    var list = List<Listing>.from(demoListings);
-    if (!_isRealUser && kind == null) {
-      list = list.where((l) => l.isPlace || l.isShop).toList();
+    final allListingsMap = <String, Listing>{};
+    for (final l in demoListings) {
+      allListingsMap[l.id] = l;
     }
+    for (final l in _dynamicCustomListings) {
+      allListingsMap[l.id] = l;
+    }
+
+    var list = allListingsMap.values.toList();
     if (kind != null && kind.isNotEmpty) {
       list = list.where((l) => l.kind == kind).toList();
     }
     if (category != null && category.isNotEmpty && category != 'All') {
+      final catLower = category.toLowerCase();
       list = list
           .where(
-            (l) => l.category.toLowerCase().contains(category.toLowerCase()),
+            (l) =>
+                l.category.toLowerCase().contains(catLower) ||
+                l.tags.any((t) => t.toLowerCase().contains(catLower)),
           )
           .toList();
     }
@@ -210,35 +270,31 @@ class BrowseRepository {
 
   /// Fetch a single listing by its document ID
   Future<Listing?> fetchListingById(String id) async {
+    // 1. Check in-memory custom listings first
+    for (final l in _dynamicCustomListings) {
+      if (l.id == id) return l;
+    }
+
     final firestore = _firestore;
     if (firestore != null) {
-      if (!_isRealUser &&
-          demoListings.any(
-            (listing) => listing.id == id && listing.isService,
-          )) {
-        return null;
-      }
       try {
         final doc = await firestore.collection(FsPaths.listings).doc(id).get();
         if (doc.exists && doc.data() != null) {
           final listing = Listing.fromMap(doc.id, doc.data()!);
-          if (listing.status == 'active' &&
-              (_isRealUser || !listing.isService)) {
+          if (listing.status == 'active') {
             return listing;
           }
         }
       } catch (e) {
         debugPrint('Firestore fetchListingById error: $e');
-        return null;
       }
-      return null;
     }
 
-    if (!kDebugMode) return null;
-    return demoListings.cast<Listing?>().firstWhere(
-      (listing) => listing?.id == id && (_isRealUser || !listing!.isService),
-      orElse: () => null,
-    );
+    // 2. Fallback to demo listings
+    for (final l in demoListings) {
+      if (l.id == id) return l;
+    }
+    return null;
   }
 
   /// Search listings across name, category, highlight, address, and tags

@@ -5,8 +5,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/constants/firestore_paths.dart';
 import '../../../core/models/chat_message.dart';
+import '../../../core/models/lead.dart';
 import '../../../core/models/listing.dart';
 import '../../../core/models/service_request.dart';
+import '../../provider/data/provider_repository.dart';
 
 /// Customer Service Request Repository (Module 3 - Customer Service Requests).
 /// All Firestore and Supabase operations for requests live exclusively here.
@@ -136,7 +138,46 @@ class RequestsRepository {
       'createdAt': now,
     });
 
-    await batch.commit();
+    // 3. Broadcast lead to matching providers (leads collection)
+    final maskedPhone = customerPhone.length > 5
+        ? '${customerPhone.substring(0, 6)} •••••'
+        : customerPhone;
+    final leadId = 'lead_$requestId';
+
+    final lead = Lead(
+      id: leadId,
+      requestId: requestId,
+      providerId: '',
+      status: 'new',
+      category: category,
+      problemTitle: description,
+      roughArea: roughAddress,
+      urgency: urgency,
+      fee: 25,
+      customerPhoneMasked: maskedPhone,
+      createdAt: DateTime.now(),
+    );
+    ProviderRepository.broadcastLeadLocally(lead);
+
+    final leadRef = _firestore.collection(FsPaths.leads).doc(leadId);
+    batch.set(leadRef, {
+      'requestId': requestId,
+      'providerId': '',
+      'status': 'new',
+      'category': category,
+      'problemTitle': description,
+      'roughArea': roughAddress,
+      'urgency': urgency,
+      'fee': 25,
+      'customerPhoneMasked': maskedPhone,
+      'createdAt': now,
+    });
+
+    try {
+      await batch.commit();
+    } catch (e) {
+      debugPrint('Firestore createRequest batch commit notice: $e');
+    }
   }
 
   /// Stream service request live to monitor status changes (searching, accepted, done, cancelled).
