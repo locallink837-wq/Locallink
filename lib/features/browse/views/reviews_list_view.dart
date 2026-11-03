@@ -35,7 +35,7 @@ class _ReviewsListViewState extends State<ReviewsListView> {
         _fetchListingById(args);
         return;
       } else {
-        _listing = BrowseRepository.demoListings.first;
+        _listing = BrowseRepository.demoListings.firstOrNull;
       }
       _loadReviews();
     }
@@ -44,7 +44,7 @@ class _ReviewsListViewState extends State<ReviewsListView> {
   Future<void> _fetchListingById(String id) async {
     final fetched = await _repository.fetchListingById(id);
     if (mounted) {
-      setState(() => _listing = fetched ?? BrowseRepository.demoListings.first);
+      setState(() => _listing = fetched ?? BrowseRepository.demoListings.firstOrNull);
       _loadReviews();
     }
   }

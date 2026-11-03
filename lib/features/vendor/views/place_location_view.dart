@@ -150,7 +150,7 @@ class _PlaceLocationViewState extends State<PlaceLocationView> {
 
               UiTextInput(
                 label: '',
-                hintText: 'e.g. Near City Bus Stand, College Road, Pune',
+                hintText: 'e.g. Near Bus Stand, Market Road',
                 controller: _addressController,
                 maxLines: 2,
               ),

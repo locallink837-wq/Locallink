@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 
+import '../../../core/config/env.dart';
+import '../../../core/services/location_service.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../data/provider_repository.dart';
 
@@ -22,8 +24,8 @@ class _ServiceAreaViewState extends State<ServiceAreaView> {
   final _addressController = TextEditingController();
 
   double _radiusKm = 5.0;
-  double _latitude = 18.5204;
-  double _longitude = 73.8567;
+  double _latitude = Env.defaultLatitude;
+  double _longitude = Env.defaultLongitude;
   bool _isLoading = true;
   bool _isSaving = false;
   String? _errorMessage;
@@ -58,7 +60,7 @@ class _ServiceAreaViewState extends State<ServiceAreaView> {
       if (provData != null) {
         _radiusKm = (provData['radiusKm'] as num?)?.toDouble() ?? 5.0;
         _addressController.text =
-            provData['address']?.toString() ?? 'Kothrud, Pune';
+            provData['address']?.toString() ?? (LocationService.lastKnownArea ?? '');
 
         final loc = provData['serviceLocation'];
         if (loc != null) {
@@ -222,7 +224,7 @@ class _ServiceAreaViewState extends State<ServiceAreaView> {
                     const SizedBox(height: 6),
                     UiTextInput(
                       label: '',
-                      hintText: 'Enter area name (e.g. Kothrud, Pune)',
+                      hintText: 'Enter area or city name',
                       controller: _addressController,
                       maxLines: 2,
                     ),

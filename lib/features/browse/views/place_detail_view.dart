@@ -58,8 +58,7 @@ class _PlaceDetailViewState extends State<PlaceDetailView> {
         _fetchListingById(args);
         return;
       } else {
-        // Fallback demo place for direct dev menu access
-        _listing = BrowseRepository.demoListings.firstWhere((l) => l.isPlace);
+        _listing = BrowseRepository.demoListings.where((l) => l.isPlace).firstOrNull;
       }
       _loadReviews();
     }
@@ -71,7 +70,7 @@ class _PlaceDetailViewState extends State<PlaceDetailView> {
       setState(
         () => _listing =
             fetched ??
-            BrowseRepository.demoListings.firstWhere((l) => l.isPlace),
+            BrowseRepository.demoListings.where((l) => l.isPlace).firstOrNull,
       );
       _loadReviews();
     }

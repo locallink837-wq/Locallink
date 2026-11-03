@@ -37,9 +37,9 @@ class _AcceptedContactViewState extends State<AcceptedContactView> {
     final requestId = args['requestId'] as String?;
 
     final fallback = {
-      'name': 'Meera Joshi',
-      'phone': '+91 94220 56789',
-      'address': 'Flat 204, Om Residency, Model Colony, Pune',
+      'name': 'Customer',
+      'phone': '',
+      'address': 'Location details pending',
     };
 
     if (requestId == null || requestId.isEmpty) {

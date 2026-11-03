@@ -43,12 +43,12 @@ class _EditListingViewState extends State<EditListingView> {
         _open24x7 = _listing!.open24x7;
         _tagsController.text = _listing!.tags.join(', ');
       } else {
-        _nameController.text = 'Pune Hardware & Paints';
-        _phoneController.text = '+91 98220 54321';
+        _nameController.text = '';
+        _phoneController.text = '';
         _opensAtController.text = '09:00';
         _closesAtController.text = '21:00';
         _open24x7 = false;
-        _tagsController.text = 'Pipes, Paints, Electrical, Tools, Sanitary';
+        _tagsController.text = '';
       }
     }
   }

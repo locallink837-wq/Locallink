@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../../app/shells/provider_shell.dart';
+import '../../../core/config/env.dart';
 import '../../../core/services/location_service.dart';
 import '../../../core/widgets/location_map_picker.dart';
 import '../../../core/widgets/ui_kit.dart';
@@ -21,8 +22,8 @@ class RegisterLocationView extends StatefulWidget {
 class _RegisterLocationViewState extends State<RegisterLocationView> {
   final _addressController = TextEditingController();
   final _repo = ProviderRepository();
-  double _latitude = 18.5204; // Default Pune fallback
-  double _longitude = 73.8567;
+  double _latitude = Env.defaultLatitude;
+  double _longitude = Env.defaultLongitude;
   String? _errorMessage;
   bool _isSubmitting = false;
 
@@ -152,7 +153,7 @@ class _RegisterLocationViewState extends State<RegisterLocationView> {
 
               UiTextInput(
                 label: 'Work address / Area name',
-                hintText: 'e.g. Kothrud, Pune - 411038',
+                hintText: 'e.g. Area or Pincode',
                 controller: _addressController,
                 maxLines: 2,
               ),

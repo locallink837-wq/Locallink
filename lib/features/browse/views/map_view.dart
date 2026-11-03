@@ -69,6 +69,11 @@ class _MapViewState extends State<MapView> {
   @override
   void initState() {
     super.initState();
+    final lastKnown = LocationService.lastKnownDevicePosition;
+    if (lastKnown != null) {
+      _userLat = lastKnown.latitude;
+      _userLng = lastKnown.longitude;
+    }
     _loadListings();
   }
 
@@ -181,9 +186,24 @@ class _MapViewState extends State<MapView> {
     } catch (_) {}
   }
 
-  void _recenterOnUser() {
+  Future<void> _recenterOnUser() async {
     try {
-      _mapController.move(LatLng(_userLat, _userLng), 15.5);
+      final lastKnown = LocationService.lastKnownDevicePosition;
+      if (lastKnown != null) {
+        _userLat = lastKnown.latitude;
+        _userLng = lastKnown.longitude;
+        _mapController.move(LatLng(_userLat, _userLng), 16);
+      } else {
+        _mapController.move(LatLng(_userLat, _userLng), 16);
+      }
+
+      final pos = await _locationService.getCurrentPosition();
+      if (!mounted) return;
+      setState(() {
+        _userLat = pos.latitude;
+        _userLng = pos.longitude;
+      });
+      _mapController.move(LatLng(pos.latitude, pos.longitude), 16);
     } catch (_) {}
   }
 

@@ -145,7 +145,7 @@ class _CustomerInfoViewState extends State<CustomerInfoView> {
               UiTextInput(
                 label: 'Home area',
                 controller: _area,
-                hintText: 'e.g. Shivajinagar, Pune',
+                hintText: 'e.g. City or Area name',
               ),
               AuthErrorBanner(_error),
             ],

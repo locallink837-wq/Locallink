@@ -41,7 +41,7 @@ class _ReportWrongInfoViewState extends State<ReportWrongInfoView> {
       if (args is Listing) {
         _listing = args;
       } else {
-        _listing = BrowseRepository.demoListings.first;
+        _listing = BrowseRepository.demoListings.firstOrNull;
       }
     }
   }
