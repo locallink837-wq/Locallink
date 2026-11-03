@@ -109,7 +109,6 @@ class BrowseRepository {
     String? kind,
     String? city,
     String? category,
-    String? city,
     bool? verifiedOnly,
     bool? openNowOnly,
     int limit = 50,
@@ -208,7 +207,7 @@ class BrowseRepository {
   }) async* {
     final firestore = _firestore;
     if (firestore == null) {
-      yield _filterMockListings(kind, category);
+      yield _filterMockListings(kind: kind, category: category, city: city);
       return;
     }
 
@@ -250,15 +249,14 @@ class BrowseRepository {
       }
     } catch (e) {
       debugPrint('Stream listings error: $e');
-      yield _filterMockListings(kind, category);
+      yield _filterMockListings(kind: kind, category: category, city: city);
     }
   }
 
-  List<Listing> _filterMockListings(
+  List<Listing> _filterMockListings({
     String? kind,
     String? city,
-    String? category, {
-    String? city,
+    String? category,
     bool? verifiedOnly,
     bool? openNowOnly,
   }) {
