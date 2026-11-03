@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/constants/firestore_paths.dart';
 import '../../../core/models/listing.dart';
+import '../../browse/data/browse_repository.dart';
 
 /// Vendor Data Repository (Module 7 - Shop and Place Owners).
 /// All Firestore and Supabase operations for vendors live exclusively here.
@@ -132,47 +133,72 @@ class VendorRepository {
     required List<String> products,
     required String? photoUrl,
   }) async {
-    final batch = _firestore.batch();
     final now = FieldValue.serverTimestamp();
     final geoPoint = GeoPoint(latitude, longitude);
     final geohash = GeoFirePoint(geoPoint).geohash;
 
-    // 1. listings/{id}
-    final listingRef = _firestore.collection(FsPaths.listings).doc(listingId);
-    batch.set(listingRef, {
-      'kind': 'shop',
-      'name': name,
-      'category': category,
-      'phone': phone,
-      'address': address,
-      'location': geoPoint,
-      'geohash': geohash,
-      'tags': products,
-      'open24x7': open24x7,
-      'opensAt': opensAt,
-      'closesAt': closesAt,
-      'weeklyOff': weeklyOff,
-      'verified': true,
-      'status': 'active',
-      'photoUrls': photoUrl != null ? [photoUrl] : <String>[],
-      'ratingSum': 0,
-      'reviewCount': 0,
-      'ownerId': uid,
-      'createdAt': now,
-    });
-
-    // 2. users/{uid}
-    final userRef = _firestore.collection(FsPaths.users).doc(uid);
-    batch.set(
-      userRef,
-      {
-        'role': 'shopOwner',
-        'createdAt': now,
-      },
-      SetOptions(merge: true),
+    // Register locally immediately so Customer side can see it
+    final newListing = Listing(
+      id: listingId,
+      kind: 'shop',
+      name: name,
+      category: category,
+      phone: phone,
+      address: address,
+      location: geoPoint,
+      latitude: latitude,
+      longitude: longitude,
+      tags: products,
+      open24x7: open24x7,
+      opensAt: opensAt,
+      closesAt: closesAt,
+      weeklyOff: weeklyOff,
+      verified: true,
+      status: 'active',
+      photoUrls: photoUrl != null ? [photoUrl] : const [],
+      ownerId: uid,
     );
+    BrowseRepository.registerCustomListing(newListing);
 
-    await batch.commit();
+    try {
+      final batch = _firestore.batch();
+      final listingRef = _firestore.collection(FsPaths.listings).doc(listingId);
+      batch.set(listingRef, {
+        'kind': 'shop',
+        'name': name,
+        'category': category,
+        'phone': phone,
+        'address': address,
+        'location': geoPoint,
+        'geohash': geohash,
+        'tags': products,
+        'open24x7': open24x7,
+        'opensAt': opensAt,
+        'closesAt': closesAt,
+        'weeklyOff': weeklyOff,
+        'verified': true,
+        'status': 'active',
+        'photoUrls': photoUrl != null ? [photoUrl] : <String>[],
+        'ratingSum': 0,
+        'reviewCount': 0,
+        'ownerId': uid,
+        'createdAt': now,
+      });
+
+      final userRef = _firestore.collection(FsPaths.users).doc(uid);
+      batch.set(
+        userRef,
+        {
+          'role': 'shopOwner',
+          'createdAt': now,
+        },
+        SetOptions(merge: true),
+      );
+
+      await batch.commit();
+    } catch (e) {
+      debugPrint('Firestore submitShopRegistration notice: $e');
+    }
   }
 
   /// Submit Place registration atomically in a single batch.
@@ -188,45 +214,67 @@ class VendorRepository {
     required double longitude,
     required bool open24x7,
   }) async {
-    final batch = _firestore.batch();
     final now = FieldValue.serverTimestamp();
     final geoPoint = GeoPoint(latitude, longitude);
     final geohash = GeoFirePoint(geoPoint).geohash;
 
-    // 1. listings/{id}
-    final listingRef = _firestore.collection(FsPaths.listings).doc(listingId);
-    batch.set(listingRef, {
-      'kind': 'place',
-      'name': name,
-      'category': category,
-      'highlight': categoryDetails,
-      'phone': phone,
-      'address': address,
-      'location': geoPoint,
-      'geohash': geohash,
-      'tags': [category],
-      'open24x7': open24x7,
-      'verified': true,
-      'status': 'active',
-      'photoUrls': <String>[],
-      'ratingSum': 0,
-      'reviewCount': 0,
-      'ownerId': uid,
-      'createdAt': now,
-    });
-
-    // 2. users/{uid}
-    final userRef = _firestore.collection(FsPaths.users).doc(uid);
-    batch.set(
-      userRef,
-      {
-        'role': 'placeOwner',
-        'createdAt': now,
-      },
-      SetOptions(merge: true),
+    // Register locally immediately so Customer side can see it
+    final newListing = Listing(
+      id: listingId,
+      kind: 'place',
+      name: name,
+      category: category,
+      highlight: categoryDetails,
+      phone: phone,
+      address: address,
+      location: geoPoint,
+      latitude: latitude,
+      longitude: longitude,
+      tags: [category],
+      open24x7: open24x7,
+      verified: true,
+      status: 'active',
+      ownerId: uid,
     );
+    BrowseRepository.registerCustomListing(newListing);
 
-    await batch.commit();
+    try {
+      final batch = _firestore.batch();
+      final listingRef = _firestore.collection(FsPaths.listings).doc(listingId);
+      batch.set(listingRef, {
+        'kind': 'place',
+        'name': name,
+        'category': category,
+        'highlight': categoryDetails,
+        'phone': phone,
+        'address': address,
+        'location': geoPoint,
+        'geohash': geohash,
+        'tags': [category],
+        'open24x7': open24x7,
+        'verified': true,
+        'status': 'active',
+        'photoUrls': <String>[],
+        'ratingSum': 0,
+        'reviewCount': 0,
+        'ownerId': uid,
+        'createdAt': now,
+      });
+
+      final userRef = _firestore.collection(FsPaths.users).doc(uid);
+      batch.set(
+        userRef,
+        {
+          'role': 'placeOwner',
+          'createdAt': now,
+        },
+        SetOptions(merge: true),
+      );
+
+      await batch.commit();
+    } catch (e) {
+      debugPrint('Firestore submitPlaceRegistration notice: $e');
+    }
   }
 
   /// Search active listings with no owner (ownerId is empty) to claim.

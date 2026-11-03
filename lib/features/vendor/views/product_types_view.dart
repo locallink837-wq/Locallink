@@ -56,11 +56,12 @@ class _ProductTypesViewState extends State<ProductTypesView> {
   }
 
   Future<void> _onSubmit() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
-    if (uid.isEmpty) {
-      setState(() => _errorMessage = 'Please sign in to complete registration.');
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null || user.isAnonymous) {
+      setState(() => _errorMessage = 'Please sign in with your phone or email to complete registration.');
       return;
     }
+    final uid = user.uid;
 
     if (_selectedProducts.isEmpty) {
       setState(() => _errorMessage = 'Please select at least one product tag.');

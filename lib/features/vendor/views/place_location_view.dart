@@ -42,11 +42,12 @@ class _PlaceLocationViewState extends State<PlaceLocationView> {
       return;
     }
 
-    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
-    if (uid.isEmpty) {
-      setState(() => _errorMessage = 'Please sign in to register a place.');
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null || user.isAnonymous) {
+      setState(() => _errorMessage = 'Please sign in with your phone or email to register a place.');
       return;
     }
+    final uid = user.uid;
 
     setState(() {
       _isSubmitting = true;
