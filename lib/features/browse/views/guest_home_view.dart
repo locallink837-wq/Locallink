@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_theme.dart';
 import '../../../core/core.dart';
+import '../../auth/state/auth_flow.dart';
 import '../data/browse_repository.dart';
 import 'browse_places_view.dart';
 import 'browse_shops_view.dart';
@@ -73,7 +74,10 @@ class _GuestHomeViewState extends State<GuestHomeView> {
         title: const Text('Explore LocaLink'),
         actions: [
           TextButton.icon(
-            onPressed: () => Navigator.pushNamed(context, '/auth/sign-in'),
+            onPressed: () {
+              AuthFlow.mode = AuthMode.login;
+              Navigator.pushNamed(context, '/auth/sign-in');
+            },
             icon: const Icon(
               Icons.login_rounded,
               size: 16,

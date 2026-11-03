@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_theme.dart';
 import '../../../core/core.dart';
+import '../../../core/utils/external_actions.dart';
 import '../data/browse_repository.dart';
 import '../state/saved_listings_notifier.dart';
 import '../widgets/rating_badge.dart';
@@ -456,13 +457,10 @@ class _ProviderDetailViewState extends State<ProviderDetailView> {
                           ),
                           color: AppColors.teal,
                           onPressed: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  'Calling ${listing.name}: ${listing.phone}',
-                                ),
-                                backgroundColor: AppColors.teal,
-                              ),
+                            ExternalActions.callPhone(
+                              context,
+                              phone: listing.phone,
+                              name: listing.name,
                             );
                           },
                         ),
@@ -479,13 +477,7 @@ class _ProviderDetailViewState extends State<ProviderDetailView> {
                         ),
                         color: AppColors.teal,
                         onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                'Directions to ${listing.address} ($distanceLabel)',
-                              ),
-                            ),
-                          );
+                          ExternalActions.openDirections(context, listing);
                         },
                       ),
                     ),

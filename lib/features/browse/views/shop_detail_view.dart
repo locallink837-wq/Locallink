@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_theme.dart';
 import '../../../core/core.dart';
+import '../../../core/utils/external_actions.dart';
 import '../data/browse_repository.dart';
 import '../state/saved_listings_notifier.dart';
 import '../widgets/rating_badge.dart';
@@ -477,28 +478,27 @@ class _ShopDetailViewState extends State<ShopDetailView> {
                 // Action Buttons Bar
                 Row(
                   children: [
-                    Expanded(
-                      child: AppButton(
-                        label: 'Call Store',
-                        icon: const Icon(
-                          Icons.call,
-                          size: 16,
-                          color: Colors.white,
+                    if (listing.phone.isNotEmpty) ...[
+                      Expanded(
+                        child: AppButton(
+                          label: 'Call Store',
+                          icon: const Icon(
+                            Icons.call,
+                            size: 16,
+                            color: Colors.white,
+                          ),
+                          color: AppColors.amber,
+                          onPressed: () {
+                            ExternalActions.callPhone(
+                              context,
+                              phone: listing.phone,
+                              name: listing.name,
+                            );
+                          },
                         ),
-                        color: AppColors.amber,
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                'Calling ${listing.name}: ${listing.phone}',
-                              ),
-                              backgroundColor: AppColors.amber,
-                            ),
-                          );
-                        },
                       ),
-                    ),
-                    const SizedBox(width: 10),
+                      const SizedBox(width: 10),
+                    ],
                     Expanded(
                       child: AppOutlineButton(
                         label: 'Directions',
@@ -509,13 +509,7 @@ class _ShopDetailViewState extends State<ShopDetailView> {
                         ),
                         color: AppColors.amber,
                         onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                'Directions to ${listing.address} ($distanceLabel)',
-                              ),
-                            ),
-                          );
+                          ExternalActions.openDirections(context, listing);
                         },
                       ),
                     ),

@@ -141,16 +141,18 @@ class AuthFlow {
 
   /// Pops every /auth/ screen and lands on the screen the person came from.
   static void returnToApp(NavigatorState nav) {
-    var landedOnAuth = false;
+    var landedOnAuthOrGuest = false;
     nav.popUntil((route) {
-      final isAuth = (route.settings.name ?? '').startsWith('/auth/');
-      if (route.isFirst || !isAuth) {
-        landedOnAuth = isAuth;
+      final name = route.settings.name ?? '';
+      final isAuth = name.startsWith('/auth/');
+      final isGuestHome = name == AuthTargets.guestHome;
+      if (route.isFirst || isGuestHome || !isAuth) {
+        landedOnAuthOrGuest = isAuth || isGuestHome;
         return true;
       }
       return false;
     });
-    if (landedOnAuth) {
+    if (landedOnAuthOrGuest) {
       nav.pushNamedAndRemoveUntil(AuthTargets.customerShell, (_) => false);
     }
   }
