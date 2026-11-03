@@ -117,7 +117,7 @@ class BrowseRepository {
 
     if (firestore != null) {
       try {
-        Query query = firestore.collection(FsPaths.listings);
+        Query<Map<String, dynamic>> query = firestore.collection(FsPaths.listings);
 
         if (kind != null && kind.isNotEmpty) {
           query = query.where('kind', isEqualTo: kind);
@@ -194,7 +194,7 @@ class BrowseRepository {
     }
 
     try {
-      Query query = firestore.collection(FsPaths.listings);
+      Query<Map<String, dynamic>> query = firestore.collection(FsPaths.listings);
       query = query.where('status', isEqualTo: 'active');
       if (kind != null && kind.isNotEmpty) {
         query = query.where('kind', isEqualTo: kind);
@@ -203,7 +203,7 @@ class BrowseRepository {
       await for (final snapshot in query.limit(limit).snapshots()) {
         final listMap = <String, Listing>{};
         for (final doc in snapshot.docs) {
-          final l = Listing.fromMap(doc.id, doc.data() as Map<String, dynamic>);
+          final l = Listing.fromMap(doc.id, doc.data());
           listMap[l.id] = l;
         }
         for (final l in _dynamicCustomListings) {
